@@ -1,0 +1,307 @@
+#pragma once
+
+#include <istream>
+#include <ostream>
+#include <string>
+#include <string_view>
+#include <span>
+#include <map>
+#include <functional>
+#include <optional>
+#include <initializer_list>
+
+
+
+namespace yacfg {
+
+	enum class DataType { eNull, eBool, eInt, eFloat, eString, eArray };
+
+	template<DataType type> std::string_view dataTypeString;
+	#define MK_TYPE_STR_(ENUM_, STR_) template<> constexpr std::string_view dataTypeString<DataType::ENUM_> = std::string_view(STR_);
+		MK_TYPE_STR_(eNull, "null")
+		MK_TYPE_STR_(eBool, "bool")
+		MK_TYPE_STR_(eInt, "int")
+		MK_TYPE_STR_(eFloat, "float")
+		MK_TYPE_STR_(eString, "string")
+		MK_TYPE_STR_(eArray, "array")
+	#undef MK_TYPE_STR_
+
+	constexpr std::string_view dataTypeStringOf(DataType type) {
+		#define MK_CASE_(ENUM_) case DataType::ENUM_: return dataTypeString<DataType::ENUM_>;
+		switch(type) {
+			MK_CASE_(eNull);
+			MK_CASE_(eBool);
+			MK_CASE_(eInt);
+			MK_CASE_(eFloat);
+			MK_CASE_(eString);
+			MK_CASE_(eArray);
+			default: return "?";
+		}
+	}
+
+	using int_t = long long;
+	using float_t = long double;
+	using string_t = std::basic_string<char>;
+
+	using InputStream = std::basic_istream<char>;
+	using OutputStream = std::basic_ostream<char>;
+
+
+	/* Valid keys are sequences of alphanumeric characters,hyphens or underscores,
+	 * separated by periods. */
+	bool isKeyValid(const std::string&);
+
+
+	class Key;
+
+	class KeySpan : public std::span<const char> {
+		friend Key;
+
+	public:
+		size_t depth;
+
+		KeySpan();
+		explicit KeySpan(const Key&);
+		KeySpan(const Key&, size_t end);
+		KeySpan(const char* data, size_t size);
+
+		bool operator<(KeySpan r) const noexcept;
+		bool operator==(KeySpan r) const noexcept;
+	};
+
+	class Key : public std::string {
+		friend KeySpan;
+
+	public:
+		Key(): std::string() { }
+		Key(std::string);
+		Key(std::initializer_list<const char*>);
+		explicit Key(const KeySpan&);
+		Key(const char* cStr): Key(std::string(cStr)) { }
+
+		Key(const Key&) = default;
+		Key(Key&&) = default;
+
+		Key& operator=(const Key&) = default;
+		Key& operator=(Key&&) = default;
+		Key& operator=(const std::string&) = delete;
+		Key& operator=(std::string&&) = delete;
+
+		Key ancestor(size_t offset) const;
+		Key parent() const { return ancestor(1); };
+
+		std::string basename() const;
+
+		const std::string& asString() const { return *this; }
+	};
+
+
+	struct SerializationRules {
+		enum FlagBits : unsigned {
+			eNull           = 0b0000,
+			ePretty         = 0b0001,
+			eExpandKeys     = 0b0010,
+			eIndentWithTabs = 0b0100,
+			eCompactArrays  = 0b1000
+		};
+		size_t indentationSize;
+		unsigned flags;
+	};
+
+
+	struct RawData {
+		DataType type;
+		union Data {
+			struct String {
+				size_t size;
+				char* ptr;
+			} stringValue;
+			struct Array {
+				size_t size;
+				RawData* ptr;
+
+				RawData& operator[](size_t index);
+				const RawData& operator[](size_t index) const;
+			} arrayValue;
+			float_t floatValue;
+			int_t intValue;
+			bool boolValue;
+		} data;
+
+		RawData(): type(DataType::eNull) { }
+
+		RawData(float_t value): type(DataType::eFloat) { data.floatValue = value; }
+		RawData(int_t value): type(DataType::eInt) { data.intValue = value; }
+		RawData(bool value): type(DataType::eBool) { data.boolValue = value; }
+
+		RawData(const char* cStr);
+		RawData(const string_t&);
+
+		static RawData copyArray(const RawData* valuesPtr, size_t n);
+		static RawData moveArray(RawData* valuesPtr, size_t n);
+
+		RawData(const RawData&);  RawData& operator=(const RawData&);
+		RawData(RawData&&);  RawData& operator=(RawData&&);
+
+		~RawData();
+
+		operator bool() const { return type != DataType::eNull; };
+		bool operator!() const { return type == DataType::eNull; };
+
+		std::string serialize(SerializationRules = { }, unsigned indentation = 0) const;
+	};
+
+
+	using array_t = std::vector<RawData>;
+	using array_span_t = std::span<const RawData>;
+
+	class Config {
+	private:
+		std::map<Key, RawData> data_;
+
+	public:
+		static Config parse(const std::string& str) { return parse(std::string(str.data(), str.size())); }
+		static Config parse(const char* cStr);
+		static Config parse(const char* charSeqPtr, size_t length);
+		static Config read(InputStream&);
+		static Config read(InputStream&, size_t count);
+		static Config read(InputStream&& tmp) { auto& tmpProxy = tmp; return read(tmpProxy); }
+
+		std::string serialize(SerializationRules = { }) const;
+		void write(OutputStream&, SerializationRules = { }) const;
+		void write(OutputStream&& tmp, SerializationRules sr = { }) const { auto& tmpProxy = tmp; return write(tmpProxy, sr); }
+
+		void merge(const Config&);
+		void merge(Config&&);
+		Config& operator<<(const Config& r) { merge(r); return *this; }
+		Config& operator<<(Config&& r) { merge(std::move(r)); return *this; }
+		Config& operator>>(Config& r) const { return r.operator<<(*this); }
+
+		std::map<yacfg::Key, yacfg::RawData>::const_iterator begin() const;
+		std::map<yacfg::Key, yacfg::RawData>::const_iterator end() const;
+
+		size_t keyCount() const;
+
+		std::optional<const RawData*> get(const Key&) const;
+		std::optional<bool>           getBool(const Key&) const;
+		std::optional<int_t>          getInt(const Key&) const;
+		std::optional<float_t>        getFloat(const Key&) const;
+		std::optional<string_t>       getString(const Key&) const;
+		std::optional<array_span_t>   getArray(const Key&) const;
+		bool         coalesce      (const Key&, bool defaultValue) const;
+		bool         coalesceBool  (const Key&, bool defaultValue) const;
+		int_t        coalesceInt   (const Key&, int_t defaultValue) const;
+		float_t      coalesceFloat (const Key&, float_t defaultValue) const;
+		string_t     coalesceString(const Key&, const string_t& defaultValue) const;
+		array_span_t coalesceArray (const Key&, const array_t& defaultValue) const;
+		bool         coalesceBool  (const Key&, std::function<bool ()> defaultValueGetter) const;
+		int_t        coalesceInt   (const Key&, std::function<int_t ()> defaultValueGetter) const;
+		float_t      coalesceFloat (const Key&, std::function<float_t ()> defaultValueGetter) const;
+		string_t     coalesceString(const Key&, std::function<string_t ()> defaultValueGetter) const;
+		array_span_t coalesceArray (const Key&, std::function<array_t ()> defaultValueGetter) const;
+
+		void set      (const Key&, RawData);
+		void setBool  (const Key&, bool value);
+		void setInt   (const Key&, int_t value);
+		void setFloat (const Key&, float_t value);
+		void setString(const Key&, string_t value);
+		void setArray (const Key&, array_t value);
+		bool setNull      (const Key&, RawData defaultValue);
+		bool setNullBool  (const Key&, bool defaultValue);
+		bool setNullInt   (const Key&, int_t defaultValue);
+		bool setNullFloat (const Key&, float_t defaultValue);
+		bool setNullString(const Key&, string_t defaultValue);
+		bool setNullArray (const Key&, array_t defaultValue);
+		bool setNullBool  (const Key&, bool, std::function<bool ()> defaultValueGetter);
+		bool setNullInt   (const Key&, int_t, std::function<int_t ()> defaultValueGetter);
+		bool setNullFloat (const Key&, float_t, std::function<float_t ()> defaultValueGetter);
+		bool setNullString(const Key&, string_t, std::function<string_t ()> defaultValueGetter);
+		bool setNullArray (const Key&, string_t, std::function<array_t ()> defaultValueGetter);
+	};
+
+
+
+	class ConfigError : public std::runtime_error {
+	protected:
+		using std::runtime_error::runtime_error;
+	};
+
+
+	class InvalidKey : public ConfigError {
+	private:
+		std::string key_;
+		size_t pos_;
+
+	public:
+		InvalidKey(std::string key, size_t charPos);
+		const std::string& key() const noexcept { return key_; }
+		size_t invalidCharPosition() const noexcept { return pos_; }
+	};
+
+
+	class InvalidValue : public ConfigError {
+	private:
+		std::string value_;
+		DataType type_;
+
+	public:
+		InvalidValue(const std::string& valueRep, DataType, const std::string& reason);
+		const std::string& valueRep() const noexcept { return value_; }
+		DataType dataType() const noexcept { return type_; }
+	};
+
+
+	class ConfigParsingError : public ConfigError {
+	protected:
+		using ConfigError::ConfigError;
+	};
+
+
+	class UnexpectedChar : public ConfigParsingError {
+	private:
+		std::string expected_;
+		size_t line_;
+		size_t lineChar_;
+		char whichChar_;
+
+	public:
+		UnexpectedChar(size_t line, size_t lineChar, char whichChar, const std::string& expected);
+		char unexpectedChar() const noexcept { return whichChar_; }
+		const std::string& expected() const noexcept { return expected_; }
+		size_t atLine() const noexcept { return line_; }
+		size_t atLineChar() const noexcept { return lineChar_; }
+	};
+
+
+	class UnexpectedEof : public ConfigParsingError {
+	private:
+		std::string expected_;
+
+	public:
+		UnexpectedEof(const std::string& expected);
+		const std::string& expected() const noexcept { return expected_; }
+	};
+
+
+	class UnclosedGroup : public ConfigParsingError {
+	private:
+		Key tos_;
+
+	public:
+		UnclosedGroup(const Key& topOfStack);
+		const Key& topOfStack() const noexcept { return tos_; }
+	};
+
+
+	class UnmatchedGroupClosure : public ConfigParsingError {
+	private:
+		size_t line_;
+		size_t lineChar_;
+
+	public:
+		UnmatchedGroupClosure(size_t line, size_t lineChar);
+		size_t atLine() const noexcept { return line_; }
+		size_t atLineChar() const noexcept { return lineChar_; }
+	};
+
+}

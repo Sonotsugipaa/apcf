@@ -110,6 +110,18 @@ namespace yacfg {
 	}
 
 
+	Key::Key(const KeySpan& keySpan):
+			std::string(keySpan.data(), keySpan.size())
+	{
+		#ifndef NDEBUG
+			if(! empty()) {
+				size_t err = findKeyError(*this);
+				assert(err == size());
+			}
+		#endif
+	}
+
+
 	Key Key::ancestor(size_t offset) const {
 		size_t cursor = size()-1;
 		{
@@ -134,6 +146,56 @@ namespace yacfg {
 		}
 		if(cursor > 0) ++cursor;
 		return substr(cursor);
+	}
+
+
+
+	KeySpan::KeySpan(): depth(1) { }
+
+	KeySpan::KeySpan(const Key& key):
+			KeySpan(key.data(), key.size())
+	{ }
+
+	KeySpan::KeySpan(const Key& key, size_t end):
+			KeySpan(key.data(), end)
+	{
+		assert(end <= key.size());
+	}
+
+	KeySpan::KeySpan(const char* data, size_t size):
+			std::span<const char>(data, size),
+			depth(0)
+	{
+		assert(yacfg::isKeyValid(std::string(data, size)));
+		if(size != 0) {
+			depth = 1;
+			for(char c : *this) {
+				if(c == GRAMMAR_KEY_SEPARATOR) {
+					++ depth;
+				}
+			}
+		}
+	}
+
+	bool KeySpan::operator<(KeySpan r) const noexcept {
+		if(size() == r.size()) {
+			return 0 > strncmp(data(), r.data(), size());
+		} else {
+			auto cmp = strncmp(data(), r.data(), std::min(size(), r.size()));
+			if(cmp == 0) {
+				return size() < r.size();
+			} else {
+				return 0 > cmp;
+			}
+		}
+	}
+
+	bool KeySpan::operator==(KeySpan r) const noexcept {
+		if(size() == r.size()) {
+			return 0 == strncmp(data(), r.data(), size());
+		} else {
+			return false;
+		}
 	}
 
 

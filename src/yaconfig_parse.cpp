@@ -111,20 +111,18 @@ namespace yacfg_parse {
 			if(isAtEof()) {
 				return false;
 			} else {
-				if(! str->read(&current, 1)) {
-					if(charsLeft <= 0 || str->eof()) {
-						current = GRAMMAR_NULL;
+				if(charsLeft > 0) {
+					if(str->read(&current, 1)) {
 						if(current == GRAMMAR_NEWLINE) {
 							++lineCounter;
 							linePosition = 1;
 						} else {
 							++ linePosition;
 						}
+					} else {
+						current = GRAMMAR_NULL;
 						charsLeft = 0;
 						return false;
-					} else {
-						#pragma message "UNIMPLEMENTED ERROR: stl stream"
-						throw yacfg::ConfigParsingError("UNIMPLEMENTED ERROR: stl stream");
 					}
 				}
 			}
@@ -283,7 +281,7 @@ namespace yacfg_parse {
 
 		{// Read the entire number-like string
 			char c = begChar;
-			if(c == '-') {
+			if(c == '-' || c == '+') {
 				buffer.push_back(c);
 				pd.src.fwd(expectStr);
 				c = pd.src.getChar();
@@ -380,7 +378,7 @@ namespace yacfg_parse {
 		if(begChar == GRAMMAR_STRING_DELIM) {
 			return parseValueString(pd);
 		} else
-		if(isNumerical(begChar) || (begChar == '-')) {
+		if(isNumerical(begChar) || (begChar == '-') || (begChar == '+')) {
 			return parseValueNumber(pd, begChar);
 		} else
 		if(

@@ -7,6 +7,9 @@ namespace yacfg_serialize {
 
 	using namespace yacfg_util;
 
+	using yacfg::Key;
+	using yacfg::KeySpan;
+
 
 	class Writer {
 	public:
@@ -217,7 +220,7 @@ namespace yacfg_serialize {
 			sd.dst.writeChar('\n');
 		} else {
 			if(sd.lastLineWasEntry) {
-				sd.dst.writeChar('\n');
+				sd.dst.writeChar(' ');
 			}
 			sd.dst.writeChars(key);
 			sd.dst.writeChar('=');
@@ -239,6 +242,9 @@ namespace yacfg_serialize {
 			sd.dst.writeChar(GRAMMAR_GROUP_BEGIN);
 			sd.dst.writeChar('\n');
 		} else {
+			if(sd.lastLineWasEntry) {
+				sd.dst.writeChar(' ');
+			}
 			sd.dst.writeChars(key);
 			sd.dst.writeChar(GRAMMAR_GROUP_BEGIN);
 		}
@@ -252,11 +258,62 @@ namespace yacfg_serialize {
 		if(sd.rules.flags & yacfg::SerializationRules::ePretty) {
 			popIndent(sd.rules, sd.state);
 			sd.dst.writeChars(sd.state.indentation);
+			sd.dst.writeChar(GRAMMAR_GROUP_END);
 			sd.dst.writeChar('\n');
 		} else {
 			sd.dst.writeChar(GRAMMAR_GROUP_END);
 		}
 		sd.lastLineWasEntry = false;
+	}
+
+
+	struct SerializeAncestryParams {
+		SerializeData* sd;
+		const std::map<yacfg::Key, yacfg::RawData>* map;
+		const Ancestry* ancestry;
+	};
+
+	void serializeAncestry(
+			SerializeAncestryParams& state,
+			const Key& key, const Key& parent
+	) {
+		// Calculate the basename of `key` by using the known parent size
+		Key keyBasename;
+		KeySpan keyBasenameSpan;
+		{
+			size_t parentOffset = 0;
+			if(! parent.empty()) parentOffset = parent.size() + 1;
+			keyBasenameSpan = KeySpan(
+				key.data() + parentOffset,
+				key.size() - parentOffset );
+			keyBasename = Key(keyBasenameSpan);
+		}
+
+		// Serialize entry, if one exists
+		if(! key.empty()) {
+			const auto& got = state.map->find(key);
+			if(got != state.map->end()) {
+				serializeLineEntry(*state.sd, keyBasename, got->second);
+			}
+		}
+
+		// Serialize group, if one exists
+		{
+			const auto& parenthood = state.ancestry->getSubkeys(key);
+			if(! parenthood.empty()) {
+				if(key.empty()) {
+					for(const auto& child : parenthood) {
+						serializeAncestry(state, Key(child), key);
+					}
+				} else {
+					serializeLineGroupBeg(*state.sd, keyBasename);
+					for(const auto& child : parenthood) {
+						serializeAncestry(state, Key(child), key);
+					}
+					serializeLineGroupEnd(*state.sd);
+				}
+			}
+		}
 	}
 
 
@@ -268,8 +325,13 @@ namespace yacfg_serialize {
 				serializeLineEntry(sd, entry.first, entry.second);
 			}
 		} else {
-			// Some MacGyver shit is needed here, idk
-			throw yacfg::ConfigParsingError("Serialization without the flag `eExpandKeys` is not yet implemented");
+			auto ancestry = Ancestry(map);
+			SerializeAncestryParams saParams = {
+				.sd = &sd,
+				.map = &map,
+				.ancestry = &ancestry };
+			ancestry.collapse();
+			serializeAncestry(saParams, "", "");
 		}
 	}
 

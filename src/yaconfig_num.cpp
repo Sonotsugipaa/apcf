@@ -21,7 +21,7 @@ namespace num {
 	) {
 		*basePrefixLenDst = 0;
 		if(strBeg == strEnd) return 10;
-		if(*strBeg == '-') ++strBeg;
+		if(*strBeg == '-' || *strBeg == '+') ++strBeg;
 		if(*strBeg == '0') {
 			++strBeg;
 			if(strBeg == strEnd) {
@@ -80,6 +80,10 @@ namespace num {
 				charsParsed = 1;
 				++strBeg;
 				signMul = -1;
+			} else
+			if(*strBeg == '+') {
+				charsParsed = 1;
+				++strBeg;
 			}
 			do {
 				auto digit = charToDigit(*strBeg);

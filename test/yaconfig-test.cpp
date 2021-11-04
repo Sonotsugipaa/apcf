@@ -20,8 +20,12 @@ namespace {
 
 
 	constexpr const char* genericConfigSrc =
+		"1 = 1\n"
+		"1.1 = 1.5\n"
+		"1.2 = 1.25\n"
 		"rootvalue-int = 1\n"
 		"rootvalue-int.negative = -1\n"
+		"rootvalue-int.positive = +1\n"
 		"rootvalue-float=1.5\n"
 		"rootvalue-string = \"str \\\"literal\\\"\"\n"
 		"rootvalue-array = [\n"
@@ -35,6 +39,11 @@ namespace {
 		"  group3 {\n"
 		"    value1=5"
 		"  }\n"
+		"}\n"
+		"long.single.line.group.1 {\n"
+		"  value1 = 6\n"
+		"  value2 = 7\n"
+		"  2 { value1=8 value2=9 }\n"
 		"}\n";
 
 	constexpr const char* tmpFileBase = "test/";
@@ -281,29 +290,14 @@ namespace {
 	}
 
 	utest::ResultType testFloatConfig(std::ostream& out) {
-		Config cfg = Config::parse("nothing = 51.4\n generic.key = 62.5");
+		Config cfg = Config::parse("nothing = 51.4\n generic.key = 62.75");
 		auto val = cfg.getFloat("generic.key");
-		if(val.has_value() && val.value() != 62.5) {
+		if(val.has_value() && val.value() != 62.75) {
 			auto got = val.value();
-			out << "Expected `" << 62.5 << "`, got `" << got << '`' << std::endl;
+			out << "Expected `" << 62.75 << "`, got `" << got << '`' << std::endl;
 			return eNeutral;
 		}
 		return eSuccess;
-	}
-
-	utest::ResultType testFloatConfigPrecise(std::ostream& out) {
-		#define VERY_PRECISE_FLOAT_  62.123456789123456789123456789123456789123456789123456789
-		#define VERY_PRECISE_STR_   "62.123456789123456789123456789123456789123456789123456789"
-		Config cfg = Config::parse("nothing = 51.4\n generic.key = " VERY_PRECISE_STR_);
-		auto val = cfg.getFloat("generic.key");
-		if(val.has_value() && val.value() != VERY_PRECISE_FLOAT_) {
-			auto got = val.value();
-			out << "Expected `" << VERY_PRECISE_FLOAT_ << "`, got `" << got << '`' << std::endl;
-			return eNeutral;
-		}
-		return eSuccess;
-		#undef VERY_PRECISE_FLOAT_
-		#undef VERY_PRECISE_STR_
 	}
 
 	utest::ResultType testBoolConfigTrue(std::ostream& out) {
@@ -376,11 +370,28 @@ namespace {
 	utest::ResultType testSerialFullPretty(std::ostream& out) {
 		Config cfg = Config::parse(genericConfigSrc);
 		constexpr auto expect =
-			"group1.group2.value1 = 3\n"
-			"group1.group2.value2 = 4\n"
-			"group1.group3.value1 = 5\n"
-			"group1.value1 = 1\n"
-			"group1.value2 = 2\n"
+			"1 = 1\n"
+			"1 {\n"
+			"  1 = 1.5\n"
+			"  2 = 1.25\n"
+			"}\n"
+			"group1 {\n"
+			"  group2 {\n"
+			"    value1 = 3\n"
+			"    value2 = 4\n"
+			"  }\n"
+			"  group3.value1 = 5\n"
+			"  value1 = 1\n"
+			"  value2 = 2\n"
+			"}\n"
+			"long.single.line.group.1 {\n"
+			"  2 {\n"
+			"    value1 = 8\n"
+			"    value2 = 9\n"
+			"  }\n"
+			"  value1 = 6\n"
+			"  value2 = 7\n"
+			"}\n"
 			"rootvalue-array = [\n"
 			"  1\n"
 			"  2.25\n"
@@ -392,13 +403,15 @@ namespace {
 			"]\n"
 			"rootvalue-float = 1.5\n"
 			"rootvalue-int = 1\n"
-			"rootvalue-int.negative = -1\n"
+			"rootvalue-int {\n"
+			"  negative = -1\n"
+			"  positive = 1\n"
+			"}\n"
 			"rootvalue-string = \"str \\\"literal\\\"\"\n";
 		yacfg::SerializationRules rules = {
 			.indentationSize = 2,
 			.flags =
-				unsigned(yacfg::SerializationRules::ePretty) |
-				unsigned(yacfg::SerializationRules::eExpandKeys) };
+				unsigned(yacfg::SerializationRules::ePretty) };
 		auto serialized = cfg.serialize(rules);
 		if(serialized != expect) {
 			out << "// The serialized config is probably incorrect.\n";
@@ -411,20 +424,29 @@ namespace {
 	utest::ResultType testSerialFullCompact(std::ostream& out) {
 		Config cfg = Config::parse(genericConfigSrc);
 		constexpr auto expect =
-			"group1.group2.value1=3\n"
-			"group1.group2.value2=4\n"
-			"group1.group3.value1=5\n"
-			"group1.value1=1\n"
-			"group1.value2=2\n"
-			"rootvalue-array=[1 2.25 [\"3\" \"4\" \"5\"]]\n"
-			"rootvalue-float=1.5\n"
-			"rootvalue-int=1\n"
-			"rootvalue-int.negative=-1\n"
-			"rootvalue-string=\"str \\\"literal\\\"\"";
+		"1=1 "
+		"1{1=1.5 2=1.25}"
+		"group1{"
+		"group2{value1=3 value2=4}"
+		"group3.value1=5 "
+		"value1=1 "
+		"value2=2"
+		"}"
+		"long.single.line.group.1{"
+		"2{value1=8 value2=9"
+		"}"
+		"value1=6 "
+		"value2=7"
+		"}"
+		"rootvalue-array=[1 2.25 [\"3\" \"4\" \"5\"]] "
+		"rootvalue-float=1.5 "
+		"rootvalue-int=1 "
+		"rootvalue-int{negative=-1 positive=1}"
+		"rootvalue-string=\"str \\\"literal\\\"\"";
 		yacfg::SerializationRules rules = {
 			.indentationSize = 2,
 			.flags =
-				unsigned(yacfg::SerializationRules::eExpandKeys) };
+				unsigned(yacfg::SerializationRules::eNull) };
 		auto serialized = cfg.serialize(rules);
 		if(serialized != expect) {
 			out << "// The serialized config is probably incorrect.\n";
@@ -443,9 +465,7 @@ namespace {
 			yacfg::SerializationRules {
 				.indentationSize = 1,
 				.flags =
-					yacfg::SerializationRules::eExpandKeys |
-					yacfg::SerializationRules::ePretty |
-					yacfg::SerializationRules::eIndentWithTabs
+					yacfg::SerializationRules::eNull
 			} );
 		return eSuccess;
 	}
@@ -492,7 +512,7 @@ int main(int, char**) {
 		.RUN_("Getter and setter (float)", testSetGetFloat)
 		.RUN_("Getter and setter (string)", testSetGetString)
 		.RUN_("Getter and setter (array)", testSetGetArray)
-		.RUN_("valid keys", testValidKeys)
+		.RUN_("Valid keys", testValidKeys)
 		.RUN_("Invalid keys", testInvalidKeys)
 		.RUN_("Config merge (copy)", testMerge<false>)
 		.RUN_("Config merge (move)", testMerge<true>)
@@ -502,7 +522,6 @@ int main(int, char**) {
 		.RUN_("[parse] String value", testStrConfig)
 		.RUN_("[parse] Integer value", testIntConfig)
 		.RUN_("[parse] Fractional value", testFloatConfig)
-		.RUN_("[parse] Fractional value (precise)", testFloatConfigPrecise)
 		.RUN_("[parse] Boolean value (TRUE/false)", testBoolConfigTrue)
 		.RUN_("[parse] Boolean value (YES/no)", testBoolConfigYes)
 		.RUN_("[parse] Boolean value (Y/n)", testBoolConfigY)
