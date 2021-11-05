@@ -255,22 +255,25 @@ namespace yacfg_parse {
 
 
 	yacfg::RawData parseValueString(ParseData& pd) {
+		#define FWD_  { pd.src.fwd(expectStr); cur = pd.src.getChar(); }
 		using namespace std::string_literals;
 		static const std::string expectStr = "a string delimiter ("s + GRAMMAR_STRING_DELIM + ")"s;
 		std::string r;
 		pd.src.fwd(expectStr);
-		char prv;
 		char cur = pd.src.getChar();
 		do {
-			prv = cur;
+			if(cur == GRAMMAR_STRING_ESCAPE) {
+				// Skip the escape char, and do not check the next one before pushing it
+				FWD_
+			}
 			r.push_back(cur);
-			pd.src.fwd(expectStr);
-			cur = pd.src.getChar();
+			FWD_
 		} while(! (
-			(cur == GRAMMAR_STRING_DELIM) && (prv != GRAMMAR_STRING_ESCAPE)
+			(cur == GRAMMAR_STRING_DELIM)
 		));
 		pd.src.fwdOrEof();
 		return yacfg::RawData(std::move(r));
+		#undef FWD_
 	}
 
 

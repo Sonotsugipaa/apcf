@@ -268,11 +268,11 @@ namespace {
 
 
 	utest::ResultType testStrConfig(std::ostream& out) {
-		Config cfg = Config::parse("nothing = \"zero\"\n generic.key = \"one\"");
+		Config cfg = Config::parse("nothing = \"zero\"\n generic.key = \"one \\\\ \\\"quote\\\"\"");
 		auto val = cfg.getString("generic.key");
-		if(val.has_value() && val.value() != std::string("one")) {
+		if(val.has_value() && val.value() != std::string("one \\ \"quote\"")) {
 			auto got = val.value();
-			out << "Expected `" << std::string("one") << "`, got `" << got << '`' << std::endl;
+			out << "Expected `" << std::string("one \\ \"quote\"") << "`, got `" << got << '`' << std::endl;
 			return eFailure;
 		}
 		return eSuccess;

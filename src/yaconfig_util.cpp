@@ -142,10 +142,6 @@ namespace yacfg_util {
 
 		const std::set<KeySpan>& getSubkeys(KeySpan) const;
 
-		const std::set<KeySpan>& getSubkeys(const std::string& str) const {
-			return getSubkeys(KeySpan(str.data(), str.size()));
-		}
-
 		bool collapse(KeySpan, KeySpan parent);
 		bool collapse();
 	};

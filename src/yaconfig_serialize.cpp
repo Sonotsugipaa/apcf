@@ -186,10 +186,17 @@ namespace yacfg_serialize {
 			case DataType::eInt: { r = num::serializeIntNumber(rawData.data.intValue); } break;
 			case DataType::eFloat: { r = num::serializeFloatNumber(rawData.data.floatValue); } break;
 			case DataType::eString: {
-				r =
-					GRAMMAR_STRING_DELIM +
-					std::string(rawData.data.stringValue.ptr, rawData.data.stringValue.size) +
-					GRAMMAR_STRING_DELIM;
+				r.reserve(
+					+ rawData.data.stringValue.size /* The size of the string itself */
+					+ 4 /* Four literal double-quote characters */ );
+				r = GRAMMAR_STRING_DELIM;
+				auto end = rawData.data.stringValue.ptr + rawData.data.stringValue.size;
+				for(auto iter = rawData.data.stringValue.ptr; iter < end; ++iter) {
+					char put = *iter;
+					if(put == GRAMMAR_STRING_DELIM) r.push_back(GRAMMAR_STRING_ESCAPE);
+					r.push_back(put);
+				}
+				r.push_back(GRAMMAR_STRING_DELIM);
 			} break;
 			case DataType::eArray: {
 				serializeArray(rules, state, rawData.data.arrayValue, r);
@@ -299,7 +306,7 @@ namespace yacfg_serialize {
 
 		// Serialize group, if one exists
 		{
-			const auto& parenthood = state.ancestry->getSubkeys(key);
+			const auto& parenthood = state.ancestry->getSubkeys(KeySpan(key));
 			if(! parenthood.empty()) {
 				if(key.empty()) {
 					for(const auto& child : parenthood) {
@@ -331,7 +338,9 @@ namespace yacfg_serialize {
 				.map = &map,
 				.ancestry = &ancestry };
 			ancestry.collapse();
-			serializeAncestry(saParams, "", "");
+			for(const auto& rootChild : ancestry.getSubkeys({ })) {
+				serializeAncestry(saParams, Key(rootChild), "");
+			}
 		}
 	}
 
