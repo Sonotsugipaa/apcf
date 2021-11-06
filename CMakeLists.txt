@@ -1,9 +1,9 @@
 # Declare the project
 
 	cmake_minimum_required(VERSION 3.20)
-	project(yaconfig
+	project(APCF
 		VERSION "0.1.0"
-		DESCRIPTION "Yet Another CONFIGuration format library, designed to be user friendly.")
+		DESCRIPTION "Almost Plain-text Configuration Format library, designed to be user friendly.")
 
 
 # Set the project's structure
@@ -36,9 +36,9 @@
 
 # Setup targets
 
-	add_library(yaconfig SHARED src/yaconfig.cpp)
+	add_library(apcf SHARED src/apcf.cpp)
 	set_target_properties(
-		yaconfig PROPERTIES
+		apcf PROPERTIES
 		VERSION "${PROJECT_VERSION}"
 		SOVERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 

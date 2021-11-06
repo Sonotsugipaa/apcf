@@ -1,6 +1,6 @@
 #include <test_tools.hpp>
 
-#include <yaconfig.hpp>
+#include <apcf.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -12,7 +12,7 @@
 
 namespace {
 
-	using yacfg::Config;
+	using apcf::Config;
 
 	constexpr auto eNeutral = utest::ResultType::eNeutral;
 
@@ -42,7 +42,7 @@ namespace {
 		#undef PUSH_DIGITS_
 	}
 
-	yacfg::RawData genStr() {
+	apcf::RawData genStr() {
 		constexpr unsigned length = 32;
 		constexpr unsigned base = 62;
 		constexpr const char digits[] =
@@ -50,29 +50,29 @@ namespace {
 			"abcdefghijklmnopqrstuvwxyz"
 			"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 		static_assert(base == sizeof(digits)-1);
-		yacfg::RawData r = yacfg::RawData::allocString(length);
+		apcf::RawData r = apcf::RawData::allocString(length);
 		for(unsigned i=0; i < length; ++i) {
 			r.data.stringValue.ptr[i] = digits[rng() % base];
 		}
 		return r;
 	}
 
-	yacfg::RawData genFloat() {
+	apcf::RawData genFloat() {
 		auto gen =
-			yacfg::float_t(rng() % 0x100) +
-			yacfg::float_t(0x100) / yacfg::float_t(rng() % 0x100);
+			apcf::float_t(rng() % 0x100) +
+			apcf::float_t(0x100) / apcf::float_t(rng() % 0x100);
 		return gen;
 	}
 
-	yacfg::RawData genArray() {
+	apcf::RawData genArray() {
 		constexpr unsigned size0 = 4;
 		constexpr unsigned size1 = 3;
-		yacfg::RawData r = yacfg::RawData::allocArray(size0);
+		apcf::RawData r = apcf::RawData::allocArray(size0);
 		for(unsigned i=0; i < size0; ++i) {
 			auto& arrayVal = r.data.arrayValue[i];
-			arrayVal = yacfg::RawData::allocArray(size1);
+			arrayVal = apcf::RawData::allocArray(size1);
 			for(unsigned j=0; j < size1; ++j) {
-				arrayVal.data.arrayValue[j] = yacfg::int_t(rng() % 0x100);
+				arrayVal.data.arrayValue[j] = apcf::int_t(rng() % 0x100);
 			}
 		}
 		return r;
@@ -92,11 +92,11 @@ namespace {
 			constexpr unsigned REPEAT_MAX_HALF = 3;
 			unsigned repeat = (rng() % REPEAT_MAX_HALF) * 4;
 			for(unsigned i=0; i < repeat; ++i) {
-				yacfg::Key key = yacfg::Key(superKey + '.' + genKey(0));
+				apcf::Key key = apcf::Key(superKey + '.' + genKey(0));
 				switch(rng() % 3) {
 					default: [[fallthrough]];
 					case 0: cfg->set(key, 1 == rng() % 1); break;
-					case 1: cfg->set(key, yacfg::int_t(rng())); break;
+					case 1: cfg->set(key, apcf::int_t(rng())); break;
 					case 2: cfg->set(key, genFloat()); break;
 					case 3: cfg->set(key, genStr()); break;
 					case 4: cfg->set(key, genArray()); break;
@@ -129,7 +129,7 @@ namespace {
 
 
 	utest::ResultType testPerformanceWr(std::ostream& out) {
-		using Rules = yacfg::SerializationRules;
+		using Rules = apcf::SerializationRules;
 		constexpr unsigned ROOT_GROUPS = 0x20;
 		Config cfg;
 		for(unsigned i=0; i < ROOT_GROUPS; ++i) {

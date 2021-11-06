@@ -1,4 +1,4 @@
-#include <yaconfig.hpp>
+#include <apcf.hpp>
 
 #include <cstring>
 #include <set>
@@ -7,17 +7,17 @@
 
 #define INVALID_VALUE_STR(TYPE_) ( \
 	"cannot get " + \
-	std::string(yacfg::dataTypeStringOf(TYPE_)) + \
+	std::string(apcf::dataTypeStringOf(TYPE_)) + \
 	" value" \
 )
 
 
 
 namespace {
-namespace yacfg_util {
+namespace apcf_util {
 
-	using yacfg::Key;
-	using yacfg::KeySpan;
+	using apcf::Key;
+	using apcf::KeySpan;
 
 
 	constexpr char GRAMMAR_NULL = '\0'; // Pragmatically equivalent to EOF in the code, but not a valid character to parse
@@ -136,9 +136,9 @@ namespace yacfg_util {
 	public:
 		std::map<KeySpan, std::set<KeySpan>> tree;
 
-		Ancestry(const std::map<yacfg::Key, yacfg::RawData>&);
+		Ancestry(const std::map<apcf::Key, apcf::RawData>&);
 
-		void putKey(const yacfg::Key&);
+		void putKey(const apcf::Key&);
 
 		const std::set<KeySpan>& getSubkeys(KeySpan) const;
 
@@ -147,15 +147,15 @@ namespace yacfg_util {
 	};
 
 
-	Ancestry::Ancestry(const std::map<yacfg::Key, yacfg::RawData>& cfg) {
+	Ancestry::Ancestry(const std::map<apcf::Key, apcf::RawData>& cfg) {
 		for(const auto& entry : cfg) {
 			putKey(entry.first);
 		}
 	}
 
 
-	void Ancestry::putKey(const yacfg::Key& key) {
-		constexpr auto splitKey = [](const yacfg::Key& key) {
+	void Ancestry::putKey(const apcf::Key& key) {
+		constexpr auto splitKey = [](const apcf::Key& key) {
 			constexpr size_t keyBasenameSizeHeuristic = 5;
 			std::vector<KeySpan> r;
 			r.reserve(key.size() / keyBasenameSizeHeuristic);

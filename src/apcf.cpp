@@ -1,16 +1,16 @@
-#include <yaconfig.hpp>
+#include <apcf.hpp>
 
 #include <cassert>
 
 // Files for the quasi-unity build
-#include "yaconfig_util.cpp"
-#include "yaconfig_num.cpp"
-#include "yaconfig_parse.cpp"
-#include "yaconfig_serialize.cpp"
+#include "apcf_util.cpp"
+#include "apcf_num.cpp"
+#include "apcf_parse.cpp"
+#include "apcf_serialize.cpp"
 
 
 
-namespace yacfg {
+namespace apcf {
 
 	bool isKeyValid(const std::string& str) {
 		assert(findKeyError(str) <= str.size());
@@ -166,7 +166,7 @@ namespace yacfg {
 			std::span<const char>(data, size),
 			depth(0)
 	{
-		assert(yacfg::isKeyValid(std::string(data, size)));
+		assert(apcf::isKeyValid(std::string(data, size)));
 		if(size != 0) {
 			depth = 1;
 			for(char c : *this) {
@@ -464,7 +464,7 @@ namespace yacfg {
 					return r;
 				}
 				default: {
-					const yacfg::RawData& value = *found.value();
+					const apcf::RawData& value = *found.value();
 					r = array_span_t(&value, 1);
 					return r;
 				}

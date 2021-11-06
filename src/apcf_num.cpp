@@ -1,11 +1,11 @@
-#include <yaconfig.hpp>
+#include <apcf.hpp>
 
 #include <limits>
 
 
 
 namespace {
-namespace yacfg_parse {
+namespace apcf_parse {
 namespace num {
 
 	struct ParseResult {
@@ -14,10 +14,10 @@ namespace num {
 	};
 
 
-	yacfg::int_t baseOf(
+	apcf::int_t baseOf(
 			std::string::const_iterator strBeg,
 			std::string::const_iterator strEnd,
-			yacfg::int_t* basePrefixLenDst
+			apcf::int_t* basePrefixLenDst
 	) {
 		*basePrefixLenDst = 0;
 		if(strBeg == strEnd) return 10;
@@ -44,16 +44,16 @@ namespace num {
 	}
 
 
-	constexpr yacfg::int_t charToDigit(char c) {
-		// Charset assumptions are already made in yaconfig_util.cpp
+	constexpr apcf::int_t charToDigit(char c) {
+		// Charset assumptions are already made in apcf_util.cpp
 		if(c >= '0' && c <= '9') return c - '0';
 		if(c >= 'a' && c <= 'z') return (c - 'a') + 0xa;
 		if(c >= 'A' && c <= 'Z') return (c - 'A') + 0xa;
-		return std::numeric_limits<yacfg::int_t>::max();
+		return std::numeric_limits<apcf::int_t>::max();
 	}
 
-	constexpr char digitToChar(yacfg::int_t digit) {
-		// Charset assumptions are already made in yaconfig_util.cpp
+	constexpr char digitToChar(apcf::int_t digit) {
+		// Charset assumptions are already made in apcf_util.cpp
 		constexpr bool useCapitalLetters = false;
 		assert(digit >= 0);
 		if(digit <= 9) return digit + '0';
@@ -69,13 +69,13 @@ namespace num {
 	size_t parseNumberInt(
 			std::string::const_iterator strBeg,
 			std::string::const_iterator strEnd,
-			yacfg::int_t base,
-			yacfg::int_t* dst
+			apcf::int_t base,
+			apcf::int_t* dst
 	) {
 		size_t charsParsed = 0;
 		*dst = 0;
 		if(strBeg != strEnd) {
-			yacfg::int_t signMul = 1;
+			apcf::int_t signMul = 1;
 			if(*strBeg == '-') {
 				charsParsed = 1;
 				++ strBeg;
@@ -103,11 +103,11 @@ namespace num {
 	size_t parseNumberFrc(
 			std::string::const_iterator strBeg,
 			std::string::const_iterator strEnd,
-			yacfg::float_t base,
-			yacfg::float_t* dst
+			apcf::float_t base,
+			apcf::float_t* dst
 	) {
 		size_t charsParsed = 0;
-		yacfg::float_t magnitude = yacfg::float_t(1) / base;
+		apcf::float_t magnitude = apcf::float_t(1) / base;
 		*dst = 0;
 		while(strBeg != strEnd) {
 			auto digit = charToDigit(*strBeg);
@@ -126,14 +126,14 @@ namespace num {
 	ParseResult parseNumber(
 			std::string::const_iterator strBeg,
 			std::string::const_iterator strEnd,
-			yacfg::RawData* dst
+			apcf::RawData* dst
 	) {
-		yacfg::int_t intPart;
+		apcf::int_t intPart;
 		std::string::const_iterator strCursor = strBeg;
 
-		yacfg::int_t base;
+		apcf::int_t base;
 		{
-			yacfg::int_t basePrefixLen;
+			apcf::int_t basePrefixLen;
 			base = baseOf(strCursor, strEnd, &basePrefixLen);
 			strCursor += basePrefixLen;
 		}
@@ -141,13 +141,13 @@ namespace num {
 
 		strCursor += parsedChars;
 		if(*strCursor != '.') {
-			*dst = yacfg::RawData(intPart);
+			*dst = apcf::RawData(intPart);
 		} else {
-			yacfg::float_t frcPart;
+			apcf::float_t frcPart;
 			++ strCursor;
 			if(strCursor != strEnd) {
 				strCursor += parseNumberFrc(strCursor, strEnd, base, &frcPart);
-				*dst = yacfg::RawData(yacfg::float_t(intPart) + frcPart);
+				*dst = apcf::RawData(apcf::float_t(intPart) + frcPart);
 			} else {
 				-- strCursor;
 			}
@@ -160,10 +160,10 @@ namespace num {
 
 
 	std::string serializeIntNumber(
-			yacfg::int_t n
+			apcf::int_t n
 	) {
-		constexpr yacfg::int_t base = 10;
-		constexpr yacfg::int_t digitsHeuristic = 10;
+		constexpr apcf::int_t base = 10;
+		constexpr apcf::int_t digitsHeuristic = 10;
 		std::string r;
 		r.reserve(digitsHeuristic);
 		if(n < 0) {
@@ -187,12 +187,12 @@ namespace num {
 
 
 	std::string serializeFloatNumber(
-			yacfg::float_t n
+			apcf::float_t n
 	) {
-		constexpr yacfg::float_t base = 10;
-		if(n > std::numeric_limits<yacfg::int_t>::max()) n = std::numeric_limits<yacfg::int_t>::max() / 2;
-		if(n < std::numeric_limits<yacfg::int_t>::min()) n = std::numeric_limits<yacfg::int_t>::min() / 2;
-		yacfg::int_t nInt = n;
+		constexpr apcf::float_t base = 10;
+		if(n > std::numeric_limits<apcf::int_t>::max()) n = std::numeric_limits<apcf::int_t>::max() / 2;
+		if(n < std::numeric_limits<apcf::int_t>::min()) n = std::numeric_limits<apcf::int_t>::min() / 2;
+		apcf::int_t nInt = n;
 		std::string r = serializeIntNumber(nInt);
 		if(n < 0) {
 			n = -n;

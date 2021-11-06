@@ -1,6 +1,6 @@
 #include <test_tools.hpp>
 
-#include <yaconfig.hpp>
+#include <apcf.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -10,7 +10,7 @@
 
 namespace {
 
-	using yacfg::Config;
+	using apcf::Config;
 
 	constexpr auto eFailure = utest::ResultType::eFailure;
 	constexpr auto eNeutral = utest::ResultType::eNeutral;
@@ -51,17 +51,17 @@ namespace {
 
 	auto wrapExceptions(TestFn fn) {
 		return [fn](std::ostream& cerr) -> utest::ResultType {
-			using namespace yacfg;
+			using namespace apcf;
 			try {
 				return std::move(fn)(cerr);
 			} catch(InvalidKey& err) {
-				cerr << "Caught yacfg::InvalidKey: " << err.what() << std::endl;
+				cerr << "Caught apcf::InvalidKey: " << err.what() << std::endl;
 			} catch(InvalidValue& err) {
-				cerr << "Caught yacfg::InvalidValue: " << err.what() << std::endl;
+				cerr << "Caught apcf::InvalidValue: " << err.what() << std::endl;
 			} catch(UnexpectedChar& err) {
-				cerr << "Caught yacfg::UnexpectedChar: " << err.what() << std::endl;
+				cerr << "Caught apcf::UnexpectedChar: " << err.what() << std::endl;
 			} catch(UnexpectedEof& err) {
-				cerr << "Caught yacfg::UnexpectedEof: " << err.what() << std::endl;
+				cerr << "Caught apcf::UnexpectedEof: " << err.what() << std::endl;
 			}
 			return eFailure;
 		};
@@ -128,7 +128,7 @@ namespace {
 			cfg.setInt(key, key.size());
 			out << "Invalid key \"" << key << "\" results valid" << std::endl;
 			return false;
-		} catch(yacfg::InvalidKey& ex) {
+		} catch(apcf::InvalidKey& ex) {
 			return true;
 		}
 	}
@@ -138,7 +138,7 @@ namespace {
 			Config cfg;
 			cfg.setInt(key, key.size());
 			return true;
-		} catch(yacfg::InvalidKey& ex) {
+		} catch(apcf::InvalidKey& ex) {
 			out << "Valid key \"" << key << "\" results invalid" << std::endl;
 			return false;
 		}
@@ -194,7 +194,7 @@ namespace {
 			"  }\n"
 			"}\n" );
 		bool result = true;
-		auto checkEntry = [&out, &cfg, &result](const yacfg::Key& key, yacfg::int_t value) {
+		auto checkEntry = [&out, &cfg, &result](const apcf::Key& key, apcf::int_t value) {
 			auto entry = cfg.getInt(key);
 			if(! entry.has_value()) {
 				out << "Missing entry for `" << key << '`' << std::endl;
@@ -218,7 +218,7 @@ namespace {
 			Config cfg = Config::parse("group1{group2{}} }");
 			out << "Expected a UnmatchedGroupClosure error to be thrown" << std::endl;
 			return eFailure;
-		} catch(yacfg::UnmatchedGroupClosure&) {
+		} catch(apcf::UnmatchedGroupClosure&) {
 			return eSuccess;
 		}
 	}
@@ -228,7 +228,7 @@ namespace {
 			Config cfg = Config::parse(" group1 { group2 { } ");
 			out << "Expected a UnclosedGroup error to be thrown" << std::endl;
 			return eFailure;
-		} catch(yacfg::UnclosedGroup&) {
+		} catch(apcf::UnclosedGroup&) {
 			return eSuccess;
 		}
 	}
@@ -249,7 +249,7 @@ namespace {
 			cfg << cfg1 << cfg2;
 		}
 		auto result = true;
-		auto checkEntry = [&out, &cfg, &result](const yacfg::Key& key, yacfg::int_t value) {
+		auto checkEntry = [&out, &cfg, &result](const apcf::Key& key, apcf::int_t value) {
 			auto entry = cfg.getInt(key);
 			if(! entry.has_value()) {
 				out << "Missing entry for `" << key << '`' << std::endl;
@@ -410,10 +410,10 @@ namespace {
 			"  positive = 1\n"
 			"}\n"
 			"rootvalue-string = \"str \\\"literal\\\"\"\n";
-		yacfg::SerializationRules rules = {
+		apcf::SerializationRules rules = {
 			.indentationSize = 2,
 			.flags =
-				unsigned(yacfg::SerializationRules::ePretty) };
+				unsigned(apcf::SerializationRules::ePretty) };
 		auto serialized = cfg.serialize(rules);
 		if(serialized != expect) {
 			out << "// The serialized config is probably incorrect.\n";
@@ -445,10 +445,10 @@ namespace {
 		"rootvalue-int=1 "
 		"rootvalue-int{negative=-1 positive=1}"
 		"rootvalue-string=\"str \\\"literal\\\"\"";
-		yacfg::SerializationRules rules = {
+		apcf::SerializationRules rules = {
 			.indentationSize = 2,
 			.flags =
-				unsigned(yacfg::SerializationRules::eNull) };
+				unsigned(apcf::SerializationRules::eNull) };
 		auto serialized = cfg.serialize(rules);
 		if(serialized != expect) {
 			out << "// The serialized config is probably incorrect.\n";
@@ -464,10 +464,10 @@ namespace {
 		Config cfg = Config::parse(genericConfigSrc);
 		cfg.write(
 			std::ofstream(tmpFileBase + "test_generic.cfg"s),
-			yacfg::SerializationRules {
+			apcf::SerializationRules {
 				.indentationSize = 1,
 				.flags =
-					yacfg::SerializationRules::eNull
+					apcf::SerializationRules::eNull
 			} );
 		return eSuccess;
 	}
@@ -492,8 +492,8 @@ namespace {
 			if(fileEntryFound.value()->type != cmpEntry.second.type) {
 				out
 					<< "Type mismatch for `" << cmpEntry.first << "`:\nread "
-					<< yacfg::dataTypeStringOf(fileEntryFound.value()->type)
-					<< ",\nexpected " << yacfg::dataTypeStringOf(cmpEntry.second.type)
+					<< apcf::dataTypeStringOf(fileEntryFound.value()->type)
+					<< ",\nexpected " << apcf::dataTypeStringOf(cmpEntry.second.type)
 					<< std::endl;
 				return eFailure;
 			}

@@ -1,4 +1,4 @@
-#include <yaconfig.hpp>
+#include <apcf.hpp>
 
 #include <fstream>
 #include <limits>
@@ -6,9 +6,9 @@
 
 
 namespace {
-namespace yacfg_parse {
+namespace apcf_parse {
 
-	using namespace yacfg_util;
+	using namespace apcf_util;
 
 
 	class Source {
@@ -29,7 +29,7 @@ namespace yacfg_parse {
 		virtual bool fwdOrEof() = 0;
 
 		void fwd(const std::string& expected) {
-			if(! fwdOrEof()) throw yacfg::UnexpectedEof(expected);
+			if(! fwdOrEof()) throw apcf::UnexpectedEof(expected);
 		}
 	};
 
@@ -133,9 +133,9 @@ namespace yacfg_parse {
 
 
 	struct ParseData {
-		yacfg::Config cfg;
+		apcf::Config cfg;
 		Source& src;
-		std::vector<yacfg::Key> keyStack;
+		std::vector<apcf::Key> keyStack;
 	};
 
 
@@ -189,7 +189,7 @@ namespace yacfg_parse {
 			));
 			pd.src.fwdOrEof();
 		} else {
-			throw yacfg::UnexpectedChar(
+			throw apcf::UnexpectedChar(
 				pd.src.lineCounter, pd.src.linePosition,
 				pd.src.getChar(), secCharExpectStr );
 		}
@@ -210,14 +210,14 @@ namespace yacfg_parse {
 
 
 	/* Does not allow EOF at the end */ /**/
-	yacfg::Key parseKey(ParseData& pd) {
+	apcf::Key parseKey(ParseData& pd) {
 		static const std::string& expectStr = "a key";
 		std::string r;
 
 		char c = pd.src.getChar();
 
 		if(! isValidKeyChar(c)) {
-			throw yacfg::UnexpectedChar(
+			throw apcf::UnexpectedChar(
 				pd.src.lineCounter, pd.src.linePosition,
 				c, expectStr );
 		}
@@ -227,16 +227,16 @@ namespace yacfg_parse {
 			pd.src.fwd(expectStr);
 			c = pd.src.getChar();
 		} while(isValidKeyChar(c));
-		assert(yacfg::isKeyValid(r)); // All non-key characters count as terminators
-		return yacfg::Key(r);
+		assert(apcf::isKeyValid(r)); // All non-key characters count as terminators
+		return apcf::Key(r);
 	}
 
 
-	yacfg::RawData parseValue(ParseData&); // Fwd decl needed for `parseValueArray`
+	apcf::RawData parseValue(ParseData&); // Fwd decl needed for `parseValueArray`
 
-	yacfg::RawData parseValueArray(ParseData& pd) {
+	apcf::RawData parseValueArray(ParseData& pd) {
 		static const std::string expectStr = "a list of space separated values";
-		std::vector<yacfg::RawData> rVector;
+		std::vector<apcf::RawData> rVector;
 		char curChar;
 
 		pd.src.fwd(expectStr);
@@ -250,11 +250,11 @@ namespace yacfg_parse {
 		}
 		pd.src.fwdOrEof();
 
-		return yacfg::RawData::moveArray(rVector.data(), rVector.size());
+		return apcf::RawData::moveArray(rVector.data(), rVector.size());
 	}
 
 
-	yacfg::RawData parseValueString(ParseData& pd) {
+	apcf::RawData parseValueString(ParseData& pd) {
 		#define FWD_  { pd.src.fwd(expectStr); cur = pd.src.getChar(); }
 		using namespace std::string_literals;
 		static const std::string expectStr = "a string delimiter ("s + GRAMMAR_STRING_DELIM + ")"s;
@@ -272,15 +272,15 @@ namespace yacfg_parse {
 			(cur == GRAMMAR_STRING_DELIM)
 		));
 		pd.src.fwdOrEof();
-		return yacfg::RawData(std::move(r));
+		return apcf::RawData(std::move(r));
 		#undef FWD_
 	}
 
 
-	yacfg::RawData parseValueNumber(ParseData& pd, char begChar) {
+	apcf::RawData parseValueNumber(ParseData& pd, char begChar) {
 		static const std::string expectStr = "a numerical value";
 		std::string buffer;
-		yacfg::RawData r;
+		apcf::RawData r;
 
 		{// Read the entire number-like string
 			char c = begChar;
@@ -303,7 +303,7 @@ namespace yacfg_parse {
 				(! buffer.empty()) &&
 				(result.parsedChars != buffer.size())
 			) {
-				throw yacfg::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
+				throw apcf::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
 					buffer[result.parsedChars],
 					"a sequence of base " + std::to_string(result.base) + " digits" );
 			}
@@ -312,11 +312,11 @@ namespace yacfg_parse {
 	}
 
 
-	yacfg::RawData parseValueBool(ParseData& pd, char begChar) {
+	apcf::RawData parseValueBool(ParseData& pd, char begChar) {
 		static const std::string& expectStr = "a boolean value (true/false, yes/no, y/n)";
 		auto expect = [&pd](char expected) {
 			if(pd.src.getChar() != expected) {
-				throw yacfg::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
+				throw apcf::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
 					pd.src.getChar(), expectStr );
 			}
 			pd.src.fwd(expectStr);
@@ -326,7 +326,7 @@ namespace yacfg_parse {
 			if(isAlphanum(curChar)) {
 				pd.src.fwd(expectStr);
 				if(curChar != expected) {
-					throw yacfg::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
+					throw apcf::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
 						curChar, expectStr );
 				}
 				return true;
@@ -361,7 +361,7 @@ namespace yacfg_parse {
 				return false;
 			} break;
 			default: {
-				throw yacfg::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
+				throw apcf::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
 					pd.src.getChar(), expectStr );
 			} break;
 		}
@@ -373,7 +373,7 @@ namespace yacfg_parse {
 		* - strings begin with GRAMMAR_STRING_DELIM;
 		* - numbers begin with a decimal digit;
 		* - boolean values begin with 'y', 'n', 't' or 'f'. */
-	yacfg::RawData parseValue(ParseData& pd) {
+	apcf::RawData parseValue(ParseData& pd) {
 		char begChar = pd.src.getChar();
 		if(begChar == GRAMMAR_ARRAY_BEGIN) {
 			return parseValueArray(pd);
@@ -390,13 +390,13 @@ namespace yacfg_parse {
 		) {
 			return parseValueBool(pd, begChar);
 		} else {
-			throw yacfg::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
+			throw apcf::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
 				begChar, "a value" );
 		}
 	}
 
 
-	yacfg::Config parse(ParseData& pd) {
+	apcf::Config parse(ParseData& pd) {
 		skipWhitespaces(pd);
 
 		/* Preemptively skip leading whitespaces and comments:
@@ -407,7 +407,7 @@ namespace yacfg_parse {
 		while(! pd.src.isAtEof()) {
 			if(pd.src.getChar() == GRAMMAR_GROUP_END) {
 				if(pd.keyStack.empty()) {
-					throw yacfg::UnmatchedGroupClosure(pd.src.lineCounter, pd.src.linePosition);
+					throw apcf::UnmatchedGroupClosure(pd.src.lineCounter, pd.src.linePosition);
 				} else {
 					pd.keyStack.pop_back();
 				}
@@ -416,7 +416,7 @@ namespace yacfg_parse {
 				// Get the key for the entry or group
 				auto key = parseKey(pd);
 				if(! pd.keyStack.empty()) {
-					key = yacfg::Key(pd.keyStack.back() + '.' + key);
+					key = apcf::Key(pd.keyStack.back() + '.' + key);
 				}
 				skipWhitespacesAndComments(pd);
 
@@ -434,7 +434,7 @@ namespace yacfg_parse {
 
 						pd.cfg.set(key, parseValue(pd));
 					} else {
-						throw yacfg::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
+						throw apcf::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
 							charAfterKey, expectDefStr );
 					}
 				}
@@ -446,7 +446,7 @@ namespace yacfg_parse {
 
 		// Check and throw for unclosed groups
 		if(! pd.keyStack.empty()) {
-			throw yacfg::UnclosedGroup(pd.keyStack.back());
+			throw apcf::UnclosedGroup(pd.keyStack.back());
 		}
 
 		return std::move(pd.cfg);
@@ -457,9 +457,9 @@ namespace yacfg_parse {
 
 
 
-namespace yacfg {
+namespace apcf {
 
-	using namespace yacfg_parse;
+	using namespace apcf_parse;
 
 
 	Config Config::parse(const char* cStr) {
@@ -472,7 +472,7 @@ namespace yacfg {
 			.cfg = { },
 			.src = src,
 			.keyStack = { } };
-		return yacfg_parse::parse(pd);
+		return apcf_parse::parse(pd);
 	}
 
 	Config Config::read(InputStream& in) {
@@ -485,7 +485,7 @@ namespace yacfg {
 			.cfg = { },
 			.src = src,
 			.keyStack = { } };
-		return yacfg_parse::parse(pd);
+		return apcf_parse::parse(pd);
 	}
 
 }

@@ -1,14 +1,14 @@
-#include <yaconfig.hpp>
+#include <apcf.hpp>
 
 
 
 namespace {
-namespace yacfg_serialize {
+namespace apcf_serialize {
 
-	using namespace yacfg_util;
+	using namespace apcf_util;
 
-	using yacfg::Key;
-	using yacfg::KeySpan;
+	using apcf::Key;
+	using apcf::KeySpan;
 
 
 	class Writer {
@@ -105,13 +105,13 @@ namespace yacfg_serialize {
 
 	struct SerializeData {
 		Writer& dst;
-		yacfg::SerializationRules rules;
+		apcf::SerializationRules rules;
 		SerializationState& state;
 		bool lastLineWasEntry;
 	};
 
 
-	std::string mkIndent(yacfg::SerializationRules rules, size_t levels) {
+	std::string mkIndent(apcf::SerializationRules rules, size_t levels) {
 		static constexpr char indentChar[] = { ' ', '\t' };
 		std::string r;
 		std::string singleLvl = [](size_t size, char c) {
@@ -120,19 +120,19 @@ namespace yacfg_serialize {
 			return r;
 		} (
 			rules.indentationSize,
-			indentChar[(rules.flags & yacfg::SerializationRules::eIndentWithTabs) != 0]
+			indentChar[(rules.flags & apcf::SerializationRules::eIndentWithTabs) != 0]
 		);
 		r.reserve(levels * rules.indentationSize);
 		for(size_t i = 0; i < levels; ++i) r.append(singleLvl);
 		return r;
 	}
 
-	void pushIndent(yacfg::SerializationRules rules, SerializationState& state) {
+	void pushIndent(apcf::SerializationRules rules, SerializationState& state) {
 		++state.indentationLevel;
 		state.indentation.append(mkIndent(rules, 1));
 	}
 
-	void popIndent(yacfg::SerializationRules rules, SerializationState& state) {
+	void popIndent(apcf::SerializationRules rules, SerializationState& state) {
 		size_t newSize = (state.indentation.size() >= rules.indentationSize)?
 			(state.indentation.size() - rules.indentationSize) :
 			0;
@@ -142,10 +142,10 @@ namespace yacfg_serialize {
 
 
 	void serializeArray(
-			yacfg::SerializationRules rules, SerializationState state,
-			const yacfg::RawData::Data::Array& data, std::string& dst
+			apcf::SerializationRules rules, SerializationState state,
+			const apcf::RawData::Data::Array& data, std::string& dst
 	) {
-		using Rules = yacfg::SerializationRules;
+		using Rules = apcf::SerializationRules;
 		dst.push_back(GRAMMAR_ARRAY_BEGIN);
 		if(rules.flags & Rules::ePretty) {
 			if(rules.flags & Rules::eCompactArrays) {
@@ -185,11 +185,11 @@ namespace yacfg_serialize {
 
 
 	std::string serializeDataRecursive(
-			const yacfg::RawData& rawData,
-			yacfg::SerializationRules rules,
+			const apcf::RawData& rawData,
+			apcf::SerializationRules rules,
 			SerializationState state
 	) {
-		using namespace yacfg;
+		using namespace apcf;
 		std::string r;
 		switch(rawData.type) {
 			case DataType::eNull: { r = "null"; } break;
@@ -219,18 +219,18 @@ namespace yacfg_serialize {
 
 	void serializeLineEntry(
 			SerializeData& sd,
-			const yacfg::Key& key,
-			const yacfg::RawData& entryValue
+			const apcf::Key& key,
+			const apcf::RawData& entryValue
 	) {
 		using namespace std::string_literals;
-		constexpr auto writeValue = [](SerializeData& sd, const yacfg::RawData& value) {
+		constexpr auto writeValue = [](SerializeData& sd, const apcf::RawData& value) {
 			std::string serializedValue = value.serialize(
 				sd.rules,
 				sd.state.indentationLevel );
 			sd.dst.writeChars(serializedValue);
 		};
-		assert(yacfg::isKeyValid(key));
-		if(sd.rules.flags & yacfg::SerializationRules::ePretty) {
+		assert(apcf::isKeyValid(key));
+		if(sd.rules.flags & apcf::SerializationRules::ePretty) {
 			sd.dst.writeChars(sd.state.indentation);
 			sd.dst.writeChars(key);
 			sd.dst.writeChars(" = "s);
@@ -250,9 +250,9 @@ namespace yacfg_serialize {
 
 	void serializeLineGroupBeg(
 			SerializeData& sd,
-			const yacfg::Key& key
+			const apcf::Key& key
 	) {
-		if(sd.rules.flags & yacfg::SerializationRules::ePretty) {
+		if(sd.rules.flags & apcf::SerializationRules::ePretty) {
 			sd.dst.writeChars(sd.state.indentation);
 			pushIndent(sd.rules, sd.state);
 			sd.dst.writeChars(key);
@@ -273,7 +273,7 @@ namespace yacfg_serialize {
 	void serializeLineGroupEnd(
 			SerializeData& sd
 	) {
-		if(sd.rules.flags & yacfg::SerializationRules::ePretty) {
+		if(sd.rules.flags & apcf::SerializationRules::ePretty) {
 			popIndent(sd.rules, sd.state);
 			sd.dst.writeChars(sd.state.indentation);
 			sd.dst.writeChar(GRAMMAR_GROUP_END);
@@ -287,7 +287,7 @@ namespace yacfg_serialize {
 
 	struct SerializeAncestryParams {
 		SerializeData* sd;
-		const std::map<yacfg::Key, yacfg::RawData>* map;
+		const std::map<apcf::Key, apcf::RawData>* map;
 		const Ancestry* ancestry;
 	};
 
@@ -335,8 +335,8 @@ namespace yacfg_serialize {
 	}
 
 
-	void serialize(SerializeData& sd, const std::map<yacfg::Key, yacfg::RawData>& map) {
-		using Rules = yacfg::SerializationRules;
+	void serialize(SerializeData& sd, const std::map<apcf::Key, apcf::RawData>& map) {
+		using Rules = apcf::SerializationRules;
 		if(sd.rules.flags & Rules::eExpandKeys) {
 			for(const auto& entry : map) {
 				serializeLineEntry(sd, entry.first, entry.second);
@@ -359,9 +359,9 @@ namespace yacfg_serialize {
 
 
 
-namespace yacfg {
+namespace apcf {
 
-	using namespace yacfg_serialize;
+	using namespace apcf_serialize;
 
 
 	std::string RawData::serialize(SerializationRules rules, unsigned indentation) const {
@@ -384,7 +384,7 @@ namespace yacfg {
 			.state = state,
 			.lastLineWasEntry = false };
 
-		yacfg_serialize::serialize(serializeData, data_);
+		apcf_serialize::serialize(serializeData, data_);
 
 		return r;
 	}
@@ -398,7 +398,7 @@ namespace yacfg {
 			.state = state,
 			.lastLineWasEntry = false };
 
-		yacfg_serialize::serialize(serializeData, data_);
+		apcf_serialize::serialize(serializeData, data_);
 	}
 
 }

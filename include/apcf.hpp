@@ -12,7 +12,7 @@
 
 
 
-namespace yacfg {
+namespace apcf {
 
 	enum class DataType { eNull, eBool, eInt, eFloat, eString, eArray };
 
@@ -183,8 +183,8 @@ namespace yacfg {
 		Config& operator<<(Config&& r) { merge(std::move(r)); return *this; }
 		Config& operator>>(Config& r) const { return r.operator<<(*this); }
 
-		std::map<yacfg::Key, yacfg::RawData>::const_iterator begin() const;
-		std::map<yacfg::Key, yacfg::RawData>::const_iterator end() const;
+		std::map<apcf::Key, apcf::RawData>::const_iterator begin() const;
+		std::map<apcf::Key, apcf::RawData>::const_iterator end() const;
 
 		size_t keyCount() const;
 
