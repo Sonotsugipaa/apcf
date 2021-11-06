@@ -148,18 +148,29 @@ namespace yacfg_serialize {
 		using Rules = yacfg::SerializationRules;
 		dst.push_back(GRAMMAR_ARRAY_BEGIN);
 		if(rules.flags & Rules::ePretty) {
-			if(data.size) {
-				pushIndent(rules, state);
-				for(size_t i=0; i < data.size; ++i) {
-					dst.push_back(GRAMMAR_NEWLINE);
-					dst.append(state.indentation);
+			if(rules.flags & Rules::eCompactArrays) {
+				dst.push_back(' ');
+				if(data.size > 0) {
+					dst.append(data.ptr->serialize(rules, state.indentationLevel)); }
+				for(size_t i=1; i < data.size; ++i) {
+					dst.push_back(' ');
 					dst.append(data.ptr[i].serialize(rules, state.indentationLevel));
 				}
-				popIndent(rules, state);
-				dst.push_back(GRAMMAR_NEWLINE);
-					dst.append(state.indentation);
-			} else {
 				dst.push_back(' ');
+			} else {
+				if(data.size) {
+					pushIndent(rules, state);
+					for(size_t i=0; i < data.size; ++i) {
+						dst.push_back(GRAMMAR_NEWLINE);
+						dst.append(state.indentation);
+						dst.append(data.ptr[i].serialize(rules, state.indentationLevel));
+					}
+					popIndent(rules, state);
+					dst.push_back(GRAMMAR_NEWLINE);
+						dst.append(state.indentation);
+				} else {
+					dst.push_back(' ');
+				}
 			}
 		} else {
 			if(data.size > 0) {
@@ -327,7 +338,6 @@ namespace yacfg_serialize {
 	void serialize(SerializeData& sd, const std::map<yacfg::Key, yacfg::RawData>& map) {
 		using Rules = yacfg::SerializationRules;
 		if(sd.rules.flags & Rules::eExpandKeys) {
-			// Just write every entry in its own "line"
 			for(const auto& entry : map) {
 				serializeLineEntry(sd, entry.first, entry.second);
 			}

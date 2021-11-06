@@ -244,7 +244,7 @@ namespace yacfg_parse {
 
 		curChar = pd.src.getChar();
 		while(curChar != GRAMMAR_ARRAY_END) {
-			rVector.push_back(parseValue(pd));
+			rVector.emplace_back(parseValue(pd));
 			skipWhitespacesAndComments(pd);
 			curChar = pd.src.getChar();
 		}

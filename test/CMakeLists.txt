@@ -10,8 +10,10 @@ add_library(test-tools STATIC
 	test_tools.cpp)
 
 add_executable(UnitTest-yaconfig yaconfig-test.cpp)
-target_link_libraries(UnitTest-yaconfig
-	test-tools yaconfig)
+target_link_libraries(UnitTest-yaconfig test-tools yaconfig)
+
+add_executable(UnitTest-perf yaconfig-perftest.cpp)
+target_link_libraries(UnitTest-perf test-tools yaconfig)
 
 
 configure_file(

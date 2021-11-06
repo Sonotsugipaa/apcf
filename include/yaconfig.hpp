@@ -40,7 +40,7 @@ namespace yacfg {
 	}
 
 	using int_t = long long;
-	using float_t = long double;
+	using float_t = double;
 	using string_t = std::basic_string<char>;
 
 	using InputStream = std::basic_istream<char>;
@@ -115,13 +115,16 @@ namespace yacfg {
 			struct String {
 				size_t size;
 				char* ptr;
+
+				char& operator[](size_t index) { return ptr[index]; }
+				const char& operator[](size_t index) const { return ptr[index]; }
 			} stringValue;
 			struct Array {
 				size_t size;
 				RawData* ptr;
 
-				RawData& operator[](size_t index);
-				const RawData& operator[](size_t index) const;
+				RawData& operator[](size_t index) { return ptr[index]; }
+				const RawData& operator[](size_t index) const { return ptr[index]; }
 			} arrayValue;
 			float_t floatValue;
 			int_t intValue;
@@ -136,6 +139,9 @@ namespace yacfg {
 
 		RawData(const char* cStr);
 		RawData(const string_t&);
+
+		static RawData allocString(size_t length);
+		static RawData allocArray(size_t size);
 
 		static RawData copyArray(const RawData* valuesPtr, size_t n);
 		static RawData moveArray(RawData* valuesPtr, size_t n);

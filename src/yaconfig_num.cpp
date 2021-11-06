@@ -21,9 +21,9 @@ namespace num {
 	) {
 		*basePrefixLenDst = 0;
 		if(strBeg == strEnd) return 10;
-		if(*strBeg == '-' || *strBeg == '+') ++strBeg;
+		if(*strBeg == '-' || *strBeg == '+') ++ strBeg;
 		if(*strBeg == '0') {
-			++strBeg;
+			++ strBeg;
 			if(strBeg == strEnd) {
 				return 10;
 			} else {
@@ -78,12 +78,12 @@ namespace num {
 			yacfg::int_t signMul = 1;
 			if(*strBeg == '-') {
 				charsParsed = 1;
-				++strBeg;
+				++ strBeg;
 				signMul = -1;
 			} else
 			if(*strBeg == '+') {
 				charsParsed = 1;
-				++strBeg;
+				++ strBeg;
 			}
 			do {
 				auto digit = charToDigit(*strBeg);
@@ -91,8 +91,8 @@ namespace num {
 					break;
 				}
 				*dst = (*dst * base) + digit;
-				++charsParsed;
-				++strBeg;
+				++ charsParsed;
+				++ strBeg;
 			} while(strBeg != strEnd);
 			*dst *= signMul;
 		}
@@ -116,8 +116,8 @@ namespace num {
 			}
 			*dst += digit * magnitude;
 			magnitude /= base;
-			++charsParsed;
-			++strBeg;
+			++ charsParsed;
+			++ strBeg;
 		}
 		return charsParsed;
 	}
@@ -144,9 +144,13 @@ namespace num {
 			*dst = yacfg::RawData(intPart);
 		} else {
 			yacfg::float_t frcPart;
-			++strCursor;
-			strCursor += parseNumberFrc(strCursor, strEnd, base, &frcPart);
-			*dst = yacfg::RawData(yacfg::float_t(intPart) + frcPart);
+			++ strCursor;
+			if(strCursor != strEnd) {
+				strCursor += parseNumberFrc(strCursor, strEnd, base, &frcPart);
+				*dst = yacfg::RawData(yacfg::float_t(intPart) + frcPart);
+			} else {
+				-- strCursor;
+			}
 		}
 		return {
 			size_t(std::distance(strBeg, strCursor)),
@@ -186,21 +190,24 @@ namespace num {
 			yacfg::float_t n
 	) {
 		constexpr yacfg::float_t base = 10;
+		if(n > std::numeric_limits<yacfg::int_t>::max()) n = std::numeric_limits<yacfg::int_t>::max() / 2;
+		if(n < std::numeric_limits<yacfg::int_t>::min()) n = std::numeric_limits<yacfg::int_t>::min() / 2;
 		yacfg::int_t nInt = n;
 		std::string r = serializeIntNumber(nInt);
+		if(n < 0) {
+			n = -n;
+			nInt = n;
+		}
 		n -= nInt;
 		r.push_back('.');
-		if(n == 0) {
-			r.push_back('0');
-			return r;
-		}
-		while(n != 0) {
+		do {
 			n *= base;
 			nInt = n;
 			assert(nInt < base);
 			r.push_back(digitToChar(nInt));
 			n -= nInt;
-		}
+		} while(n > 0);
+		// if(nInt != 0) r.push_back(digitToChar(nInt));
 		return r;
 	}
 

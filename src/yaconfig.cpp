@@ -216,6 +216,22 @@ namespace yacfg {
 		std::strncpy(data.stringValue.ptr, str.data(), data.stringValue.size);
 	}
 
+	RawData RawData::allocString(size_t len) {
+		RawData r;
+		r.type = DataType::eString;
+		r.data.stringValue.size = len;
+		r.data.stringValue.ptr = new char[len];
+		return r;
+	}
+
+	RawData RawData::allocArray(size_t len) {
+		RawData r;
+		r.type = DataType::eArray;
+		r.data.arrayValue.size = len;
+		r.data.arrayValue.ptr = new RawData[len];
+		return r;
+	}
+
 	RawData RawData::copyArray(const RawData* cpPtr, size_t size) {
 		RawData r;
 		r.type = DataType::eArray;
@@ -249,7 +265,7 @@ namespace yacfg {
 		}
 		else
 		if(type == DataType::eArray) {
-			data.stringValue.ptr = (char*) ::operator new[](data.arrayValue.size);
+			data.arrayValue.ptr = new RawData[data.arrayValue.size];
 			for(size_t i=0; i < data.arrayValue.size; ++i) {
 				data.arrayValue.ptr[i] = cp.data.arrayValue.ptr[i];
 			}
