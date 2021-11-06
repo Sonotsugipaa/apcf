@@ -8,11 +8,6 @@ generator="${generator:-"Unix Makefiles"}"
 srcpath="${srcpath:-"$(realpath .)"}"
 dstpath="${dstpath:-build-"$config"}"
 
-if [[ -v installpath ]]
-then install=("-DCMAKE_INSTALL_PREFIX=$installpath")
-else install=()
-fi
-
 mkdir -p "$dstpath"
 cd "$dstpath"
 

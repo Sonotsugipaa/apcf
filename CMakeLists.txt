@@ -19,9 +19,9 @@
 
 # Set warning levels
 
-	if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 		add_compile_options(-Wall -Wextra -Wpedantic)
-	elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
+	elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 		add_compile_options(\Wall)
 	else()
 		message(WARNING "Toolchain \"${CMAKE_CXX_COMPILER_ID}\" not recognized by the project")
@@ -39,8 +39,7 @@
 	add_library(apcf SHARED src/apcf.cpp)
 	set_target_properties(
 		apcf PROPERTIES
-		VERSION "${PROJECT_VERSION}"
-		SOVERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
+		VERSION "${PROJECT_VERSION}" )
 
 
 # Add unit test module
