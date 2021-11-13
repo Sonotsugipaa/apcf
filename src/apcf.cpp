@@ -43,7 +43,7 @@ namespace apcf {
 	):
 			ConfigParsingError(
 				"unexpected character " + plainCharRep(whichChar) +
-				" at " + std::to_string(line) + ':' + std::to_string(lineChar) +
+				" at " + std::to_string(line+1) + ':' + std::to_string(lineChar+1) +
 				std::string(", expected ") + expected
 			),
 			expected_(expected),
@@ -77,7 +77,7 @@ namespace apcf {
 	):
 			ConfigParsingError(
 				std::string("mismatched `") + GRAMMAR_GROUP_END + std::string("` at ") +
-				std::to_string(line) + ':' + std::to_string(lineChar) ),
+				std::to_string(line+1) + ':' + std::to_string(lineChar+1) ),
 			line_(line), lineChar_(lineChar)
 	{ }
 

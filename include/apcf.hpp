@@ -12,6 +12,49 @@
 
 
 
+namespace apcf::io {
+
+	class Reader {
+	protected:
+		size_t lineCtr;
+		size_t linePos;
+
+	public:
+		Reader(): lineCtr(0), linePos(0) { }
+		virtual ~Reader() { }
+
+		/** Returns `true` if the cursor is at (or past) the ond of
+		 * the stream/file, `false` otherwise. */
+		virtual bool isAtEof() const = 0;
+
+		/** Returns the character at the cursor, or '\0' if the
+		 * latter is past the end of the stream/file. */
+		virtual char getChar() const = 0;
+
+		/** Try and move the cursor forward:
+		 * returns `true` if the operation succeeded, `false` if
+		 * the cursor is already at the end of the stream/file. */
+		virtual bool fwdOrEof() = 0;
+
+		/** Return the 0-indexed line of the cursor. */
+		size_t lineCounter() const { return lineCtr; }
+
+		/** Return the 0-indexed line of the cursor. */
+		size_t linePosition() const { return linePos; }
+	};
+
+
+	class Writer {
+	public:
+		virtual void writeChar(char) = 0;
+		virtual void writeChars(const char* begin, const char* end) = 0;
+		virtual void writeChars(const std::string& str) = 0;
+	};
+
+}
+
+
+
 namespace apcf {
 
 	enum class DataType { eNull, eBool, eInt, eFloat, eString, eArray };
@@ -169,11 +212,15 @@ namespace apcf {
 		static Config parse(const std::string& str) { return parse(std::string(str.data(), str.size())); }
 		static Config parse(const char* cStr);
 		static Config parse(const char* charSeqPtr, size_t length);
+		static Config read(io::Reader&);
+		static Config read(io::Reader&& tmp) { auto& tmpProxy = tmp; return read(tmpProxy); }
 		static Config read(InputStream&);
 		static Config read(InputStream&, size_t count);
 		static Config read(InputStream&& tmp) { auto& tmpProxy = tmp; return read(tmpProxy); }
 
 		std::string serialize(SerializationRules = { }) const;
+		void write(io::Writer&, SerializationRules = { }) const;
+		void write(io::Writer&& tmp, SerializationRules sr = { }) const { auto& tmpProxy = tmp; return write(tmpProxy, sr); }
 		void write(OutputStream&, SerializationRules = { }) const;
 		void write(OutputStream&& tmp, SerializationRules sr = { }) const { auto& tmpProxy = tmp; return write(tmpProxy, sr); }
 

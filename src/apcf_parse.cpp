@@ -11,38 +11,20 @@ namespace apcf_parse {
 	using namespace apcf_util;
 
 
-	class Source {
-	public:
-		size_t lineCounter;
-		size_t linePosition;
-
-		Source(): lineCounter(1), linePosition(1) { }
-
-		virtual bool isAtEof() const = 0;
-
-		/** Returns GRAMMAR_NULL if the cursor is at EOF;
-			* this allows trivial checks at the beginning of functions
-			* such as `skipWhitespaces(...)`. */
-		virtual char getChar() const = 0;
-
-		/** Returns `true` iff the source's cursor was moved forward. */
-		virtual bool fwdOrEof() = 0;
-
-		void fwd(const std::string& expected) {
-			if(! fwdOrEof()) throw apcf::UnexpectedEof(expected);
-		}
-	};
+	void fwd(apcf::io::Reader& rd, const std::string& expected) {
+		if(! rd.fwdOrEof()) throw apcf::UnexpectedEof(expected);
+	}
 
 
-	class StringSource : public Source {
+	class StringReader : public apcf::io::Reader {
 	public:
 		std::span<const char, std::dynamic_extent> str;
 		size_t cursor;
 		size_t limit;
 
-		StringSource() = default;
+		StringReader() = default;
 
-		StringSource(
+		StringReader(
 				std::span<const char, std::dynamic_extent> str
 		):
 				str(str),
@@ -66,10 +48,10 @@ namespace apcf_parse {
 				{
 					char c = str[cursor];
 					if(c == GRAMMAR_NEWLINE) {
-						++lineCounter;
-						linePosition = 1;
+						++ lineCtr;
+						linePos = 0;
 					} else {
-						++ linePosition;
+						++ linePos;
 					}
 				}
 				++ cursor;
@@ -80,23 +62,23 @@ namespace apcf_parse {
 	};
 
 
-	class FileSource : public Source {
+	class StdStreamReader : public apcf::io::Reader {
 	public:
 		std::istream* str;
 		size_t charsLeft;
 		char current;
 
-		FileSource() = default;
+		StdStreamReader() = default;
 
-		FileSource(std::istream& str, size_t limit):
+		StdStreamReader(std::istream& str, size_t limit):
 				str(&str),
 				charsLeft(limit)
 		{
 			fwdOrEof();
 		}
 
-		FileSource(std::istream& str):
-				FileSource(str, std::numeric_limits<size_t>::max())
+		StdStreamReader(std::istream& str):
+				StdStreamReader(str, std::numeric_limits<size_t>::max())
 		{ }
 
 		bool isAtEof() const override {
@@ -114,10 +96,10 @@ namespace apcf_parse {
 				if(charsLeft > 0) {
 					if(str->read(&current, 1)) {
 						if(current == GRAMMAR_NEWLINE) {
-							++lineCounter;
-							linePosition = 1;
+							++ lineCtr;
+							linePos = 0;
 						} else {
-							++ linePosition;
+							++ linePos;
 						}
 					} else {
 						current = GRAMMAR_NULL;
@@ -134,7 +116,7 @@ namespace apcf_parse {
 
 	struct ParseData {
 		apcf::Config cfg;
-		Source& src;
+		apcf::io::Reader& src;
 		std::vector<apcf::Key> keyStack;
 	};
 
@@ -169,7 +151,7 @@ namespace apcf_parse {
 			GRAMMAR_COMMENT_ML_MIDDLE + std::string(GRAMMAR_COMMENT_EXTREME, 1) +
 			"`"s;
 		if(pd.src.getChar() != GRAMMAR_COMMENT_EXTREME) return false;
-		pd.src.fwd(secCharExpectStr);
+		fwd(pd.src, secCharExpectStr);
 		char secondChar = pd.src.getChar();
 		if(secondChar == GRAMMAR_COMMENT_SL_MIDDLE) {
 			do {
@@ -180,7 +162,7 @@ namespace apcf_parse {
 			char lastChar;
 			char curChar = GRAMMAR_COMMENT_ML_MIDDLE + 1; // It doesn't matter, it just needs to differ from GRAMMAR_COMMENT_ML_MIDDLE
 			do {
-				pd.src.fwd(commentEndExpectStr);
+				fwd(pd.src, commentEndExpectStr);
 				lastChar = curChar;
 				curChar = pd.src.getChar();
 			} while(! (
@@ -190,7 +172,7 @@ namespace apcf_parse {
 			pd.src.fwdOrEof();
 		} else {
 			throw apcf::UnexpectedChar(
-				pd.src.lineCounter, pd.src.linePosition,
+				pd.src.lineCounter(), pd.src.linePosition(),
 				pd.src.getChar(), secCharExpectStr );
 		}
 		return true;
@@ -218,13 +200,13 @@ namespace apcf_parse {
 
 		if(! isValidKeyChar(c)) {
 			throw apcf::UnexpectedChar(
-				pd.src.lineCounter, pd.src.linePosition,
+				pd.src.lineCounter(), pd.src.linePosition(),
 				c, expectStr );
 		}
 
 		do {
 			r.push_back(c);
-			pd.src.fwd(expectStr);
+			fwd(pd.src, expectStr);
 			c = pd.src.getChar();
 		} while(isValidKeyChar(c));
 		assert(apcf::isKeyValid(r)); // All non-key characters count as terminators
@@ -239,7 +221,7 @@ namespace apcf_parse {
 		std::vector<apcf::RawData> rVector;
 		char curChar;
 
-		pd.src.fwd(expectStr);
+		fwd(pd.src, expectStr);
 		skipWhitespacesAndComments(pd);
 
 		curChar = pd.src.getChar();
@@ -255,11 +237,11 @@ namespace apcf_parse {
 
 
 	apcf::RawData parseValueString(ParseData& pd) {
-		#define FWD_  { pd.src.fwd(expectStr); cur = pd.src.getChar(); }
+		#define FWD_  { fwd(pd.src, expectStr); cur = pd.src.getChar(); }
 		using namespace std::string_literals;
 		static const std::string expectStr = "a string delimiter ("s + GRAMMAR_STRING_DELIM + ")"s;
 		std::string r;
-		pd.src.fwd(expectStr);
+		fwd(pd.src, expectStr);
 		char cur = pd.src.getChar();
 		do {
 			if(cur == GRAMMAR_STRING_ESCAPE) {
@@ -286,7 +268,7 @@ namespace apcf_parse {
 			char c = begChar;
 			if(c == '-' || c == '+') {
 				buffer.push_back(c);
-				pd.src.fwd(expectStr);
+				fwd(pd.src, expectStr);
 				c = pd.src.getChar();
 			}
 			while(
@@ -303,7 +285,7 @@ namespace apcf_parse {
 				(! buffer.empty()) &&
 				(result.parsedChars != buffer.size())
 			) {
-				throw apcf::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
+				throw apcf::UnexpectedChar(pd.src.lineCounter(), pd.src.linePosition(),
 					buffer[result.parsedChars],
 					"a sequence of base " + std::to_string(result.base) + " digits" );
 			}
@@ -316,17 +298,17 @@ namespace apcf_parse {
 		static const std::string& expectStr = "a boolean value (true/false, yes/no, y/n)";
 		auto expect = [&pd](char expected) {
 			if(pd.src.getChar() != expected) {
-				throw apcf::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
+				throw apcf::UnexpectedChar(pd.src.lineCounter(), pd.src.linePosition(),
 					pd.src.getChar(), expectStr );
 			}
-			pd.src.fwd(expectStr);
+			fwd(pd.src, expectStr);
 		};
 		auto expectOpt = [&pd](char expected) {
 			char curChar = pd.src.getChar();
 			if(isAlphanum(curChar)) {
-				pd.src.fwd(expectStr);
+				fwd(pd.src, expectStr);
 				if(curChar != expected) {
-					throw apcf::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
+					throw apcf::UnexpectedChar(pd.src.lineCounter(), pd.src.linePosition(),
 						curChar, expectStr );
 				}
 				return true;
@@ -335,7 +317,7 @@ namespace apcf_parse {
 				return false;
 			}
 		};
-		pd.src.fwd(expectStr);
+		fwd(pd.src, expectStr);
 		switch(begChar) {
 			case 't': {
 				expect('r');
@@ -361,7 +343,7 @@ namespace apcf_parse {
 				return false;
 			} break;
 			default: {
-				throw apcf::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
+				throw apcf::UnexpectedChar(pd.src.lineCounter(), pd.src.linePosition(),
 					pd.src.getChar(), expectStr );
 			} break;
 		}
@@ -390,7 +372,7 @@ namespace apcf_parse {
 		) {
 			return parseValueBool(pd, begChar);
 		} else {
-			throw apcf::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
+			throw apcf::UnexpectedChar(pd.src.lineCounter(), pd.src.linePosition(),
 				begChar, "a value" );
 		}
 	}
@@ -407,7 +389,7 @@ namespace apcf_parse {
 		while(! pd.src.isAtEof()) {
 			if(pd.src.getChar() == GRAMMAR_GROUP_END) {
 				if(pd.keyStack.empty()) {
-					throw apcf::UnmatchedGroupClosure(pd.src.lineCounter, pd.src.linePosition);
+					throw apcf::UnmatchedGroupClosure(pd.src.lineCounter(), pd.src.linePosition());
 				} else {
 					pd.keyStack.pop_back();
 				}
@@ -424,7 +406,7 @@ namespace apcf_parse {
 				{
 					static constexpr const char* expectDefStr = "an assignment or a group delimiter";
 					char charAfterKey = pd.src.getChar();
-					pd.src.fwd(expectDefStr);
+					fwd(pd.src, expectDefStr);
 					if(charAfterKey == GRAMMAR_GROUP_BEGIN) {
 						pd.keyStack.push_back(std::move(key));
 					} else
@@ -434,7 +416,7 @@ namespace apcf_parse {
 
 						pd.cfg.set(key, parseValue(pd));
 					} else {
-						throw apcf::UnexpectedChar(pd.src.lineCounter, pd.src.linePosition,
+						throw apcf::UnexpectedChar(pd.src.lineCounter(), pd.src.linePosition(),
 							charAfterKey, expectDefStr );
 					}
 				}
@@ -467,10 +449,18 @@ namespace apcf {
 	}
 
 	Config Config::parse(const char* charSeqPtr, size_t length) {
-		auto src = StringSource(std::span<const char>(charSeqPtr, length));
+		auto src = StringReader(std::span<const char>(charSeqPtr, length));
 		ParseData pd = {
 			.cfg = { },
 			.src = src,
+			.keyStack = { } };
+		return apcf_parse::parse(pd);
+	}
+
+	Config Config::read(io::Reader& in) {
+		ParseData pd = {
+			.cfg = { },
+			.src = in,
 			.keyStack = { } };
 		return apcf_parse::parse(pd);
 	}
@@ -480,7 +470,7 @@ namespace apcf {
 	}
 
 	Config Config::read(InputStream& in, size_t count) {
-		auto src = FileSource(in, count);
+		auto src = StdStreamReader(in, count);
 		ParseData pd = {
 			.cfg = { },
 			.src = src,

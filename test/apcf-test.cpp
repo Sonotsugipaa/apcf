@@ -68,6 +68,23 @@ namespace {
 	}
 
 
+	utest::ResultType testVirtualRdWr(std::ostream&) {
+		struct Reader : public apcf::io::Reader {
+			bool isAtEof() const { return true; }
+			char getChar() const { return '\0'; }
+			bool fwdOrEof() { return false; }
+		};
+		struct Writer : public apcf::io::Writer {
+			void writeChar(char) { }
+			void writeChars(const char*, const char*) { }
+			void writeChars(const std::string&) { }
+		};
+		auto cfg = Config::read(Reader());
+		cfg.write(Writer());
+		return eSuccess;
+	}
+
+
 	utest::ResultType testSetGetBool(std::ostream&) {
 		Config cfg;
 		cfg.setBool("key.subkey.bool", true);
@@ -509,6 +526,7 @@ int main(int, char**) {
 	#define RUN_(NAME_, FN_) run(NAME_, wrapExceptions(FN_))
 	auto batch = utest::TestBatch(std::cout);
 	batch
+		.RUN_("Virtual reader and writer", testVirtualRdWr)
 		.RUN_("Getter and setter (bool)", testSetGetBool)
 		.RUN_("Getter and setter (int)", testSetGetInt)
 		.RUN_("Getter and setter (float)", testSetGetFloat)

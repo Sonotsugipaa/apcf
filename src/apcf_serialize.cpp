@@ -11,15 +11,7 @@ namespace apcf_serialize {
 	using apcf::KeySpan;
 
 
-	class Writer {
-	public:
-		virtual void writeChar(char) = 0;
-		virtual void writeChars(const char* begin, const char* end) = 0;
-		virtual void writeChars(const std::string& str) = 0;
-	};
-
-
-	class StringWriter : public Writer {
+	class StringWriter : public apcf::io::Writer {
 	public:
 		std::string* dst;
 		size_t cursor;
@@ -60,17 +52,17 @@ namespace apcf_serialize {
 	};
 
 
-	class FileWriter : public Writer {
+	class StdStreamWriter : public apcf::io::Writer {
 	public:
 		std::ostream* dst;
 
 		#ifdef NDEBUG
-			FileWriter() { }
+			StdStreamWriter() { }
 		#else
-			FileWriter(): dst(nullptr) { }
+			StdStreamWriter(): dst(nullptr) { }
 		#endif
 
-		FileWriter(std::ostream& dst):
+		StdStreamWriter(std::ostream& dst):
 				dst(&dst)
 		{ }
 
@@ -104,7 +96,7 @@ namespace apcf_serialize {
 
 
 	struct SerializeData {
-		Writer& dst;
+		apcf::io::Writer& dst;
 		apcf::SerializationRules rules;
 		SerializationState& state;
 		bool lastLineWasEntry;
@@ -389,15 +381,24 @@ namespace apcf {
 		return r;
 	}
 
+	void Config::write(io::Writer& out, SerializationRules sr) const {
+		SerializationState state = { };
+		SerializeData serializeData = {
+			.dst = out,
+			.rules = sr,
+			.state = state,
+			.lastLineWasEntry = false };
+		apcf_serialize::serialize(serializeData, data_);
+	}
+
 	void Config::write(OutputStream& out, SerializationRules sr) const {
 		SerializationState state = { };
-		auto wr = FileWriter(out);
+		auto wr = StdStreamWriter(out);
 		SerializeData serializeData = {
 			.dst = wr,
 			.rules = sr,
 			.state = state,
 			.lastLineWasEntry = false };
-
 		apcf_serialize::serialize(serializeData, data_);
 	}
 
