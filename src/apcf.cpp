@@ -28,7 +28,7 @@ namespace apcf {
 			const std::string& valueRep, DataType type,
 			const std::string& reason
 	):
-			ConfigError("invalid value: " + reason),
+			ConfigError("invalid value `" + valueRep + "`: " + reason),
 			value_(std::move(valueRep)),
 			type_(type)
 	{ }

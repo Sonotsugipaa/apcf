@@ -141,11 +141,12 @@ namespace apcf {
 
 	struct SerializationRules {
 		enum FlagBits : unsigned {
-			eNull           = 0b0000,
-			ePretty         = 0b0001,
-			eExpandKeys     = 0b0010,
-			eIndentWithTabs = 0b0100,
-			eCompactArrays  = 0b1000
+			eNull           = 0b00000,
+			ePretty         = 0b00001,
+			eExpandKeys     = 0b00010,
+			eIndentWithTabs = 0b00100,
+			eCompactArrays  = 0b01000,
+			eFloatNoFail    = 0b10000
 		};
 		size_t indentationSize;
 		unsigned flags;

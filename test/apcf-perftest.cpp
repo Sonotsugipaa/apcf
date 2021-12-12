@@ -15,10 +15,12 @@ namespace {
 	using apcf::Config;
 
 	constexpr auto eNeutral = utest::ResultType::eNeutral;
+	constexpr auto eFailure = utest::ResultType::eFailure;
 
 	constexpr const char cfgFilePath[] = "test/big_autogen.cfg";
 
 	auto rng = std::minstd_rand();
+	Config cfgWr, cfgRd;
 
 
 	std::string genKey(unsigned depth) {
@@ -58,9 +60,13 @@ namespace {
 	}
 
 	apcf::RawData genFloat() {
+		apcf::float_t den;
+		do {
+			den = apcf::float_t(rng() % 0x100);
+		} while(! (den < apcf::float_t(0.0) || den > apcf::float_t(0.0)));
 		auto gen =
 			apcf::float_t(rng() % 0x100) +
-			apcf::float_t(0x100) / apcf::float_t(rng() % 0x100);
+			apcf::float_t(0x100) / den;
 		return gen;
 	}
 
@@ -119,11 +125,27 @@ namespace {
 
 	utest::ResultType testPerformanceRd(std::ostream& out) {
 		auto begTime = nowUs();
-		Config cfg = Config::read(std::ifstream(cfgFilePath));
+		cfgRd = Config::read(std::ifstream(cfgFilePath));
 		auto endTime = (nowUs() - begTime);
 		out
-			<< "Parsing " << cfg.keyCount()
+			<< "Parsing " << cfgRd.keyCount()
 			<< " entries took " << endTime << "us" << std::endl;
+		for(const auto& wrEntry : cfgWr) {
+			apcf::SerializationRules rules = { };  rules.flags = apcf::SerializationRules::eCompactArrays;
+			const auto& rdValueOpt = cfgRd.get(wrEntry.first);
+			if(! rdValueOpt.has_value()) {
+				out << "Config mismatch: failed to get existing key `" << wrEntry.first << "`" << std::endl;
+				return eFailure;
+			}
+			const auto& rdValue = *rdValueOpt.value();
+			const auto& wrValue = wrEntry.second;
+			if(rdValue != wrValue) {
+				out
+					<< "Config mismatch: key `" << wrEntry.first << "` has been written as `"
+					<< wrValue.serialize(rules) << "`, but parsed as `" << rdValue.serialize(rules) << std::endl;
+				return eFailure;
+			}
+		}
 		return eNeutral;
 	}
 
@@ -131,18 +153,17 @@ namespace {
 	utest::ResultType testPerformanceWr(std::ostream& out) {
 		using Rules = apcf::SerializationRules;
 		constexpr unsigned ROOT_GROUPS = 0x20;
-		Config cfg;
 		for(unsigned i=0; i < ROOT_GROUPS; ++i) {
-			genEntries(&cfg, genKey(0), 0, 16);
+			genEntries(&cfgWr, genKey(0), 0, 16);
 		}
 		auto begTime = nowUs();
 		auto rules = Rules {
 			.indentationSize = 3,
 			.flags = Rules::ePretty | Rules::eCompactArrays };
-		cfg.write(std::ofstream(cfgFilePath), rules);
+		cfgWr.write(std::ofstream(cfgFilePath), rules);
 		auto endTime = (nowUs() - begTime);
 		out
-			<< "Serializing " << cfg.keyCount()
+			<< "Serializing " << cfgWr.keyCount()
 			<< " entries took " << endTime << "us" << std::endl;
 		return eNeutral;
 	}

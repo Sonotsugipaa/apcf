@@ -2,6 +2,9 @@
 
 #include "apcf_parse.cpp"
 
+#include <cmath>
+#include <limits>
+
 
 
 namespace {
@@ -189,7 +192,29 @@ namespace apcf_serialize {
 			case DataType::eNull: { r = "null"; } break;
 			case DataType::eBool: { r = rawData.data.boolValue? "true" : "false"; } break;
 			case DataType::eInt: { r = num::serializeIntNumber(rawData.data.intValue); } break;
-			case DataType::eFloat: { r = num::serializeFloatNumber(rawData.data.floatValue); } break;
+			case DataType::eFloat: {
+				if(std::isfinite(rawData.data.floatValue)) [[likely]] {
+					r = num::serializeFloatNumber(rawData.data.floatValue);
+				} else {
+					if(rules.flags & apcf::SerializationRules::eFloatNoFail) {
+						if(std::isinf(rawData.data.floatValue)) {
+							r = num::serializeFloatNumber(
+								std::numeric_limits<apcf::float_t>::max() *
+								((rawData.data.floatValue > 0)? 1.0f : -1.0f) );
+						} else {
+							r = num::serializeFloatNumber(0.0f);
+						}
+					} else {
+						if(std::isinf(rawData.data.floatValue)) {
+							if(rawData.data.floatValue > 0) r = "+infinity";
+							else r = "-infinity";
+						} else {
+							r = "NaN";
+						}
+						throw InvalidValue(r, DataType::eFloat, "non-finite numbers cannot be serialized");
+					}
+				}
+			} break;
 			case DataType::eString: {
 				r.reserve(
 					+ rawData.data.stringValue.size /* The size of the string itself */

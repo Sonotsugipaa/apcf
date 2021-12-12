@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
+#include <cmath>
 
 
 
@@ -476,6 +477,42 @@ namespace {
 	}
 
 
+	utest::ResultType testSerialNan(std::ostream& out) {
+		Config cfg;
+		bool r = true;
+		cfg.setFloat("inf", INFINITY);
+		cfg.setFloat("nan", NAN);
+
+		try {
+			auto serial = cfg.get("inf").value()->serialize();
+			out
+				<< "Positive infinity was successfully serialized as `"
+				<< serial << "`,\nwithout the `eFloatNoFail` flag set." << std::endl;
+			r = false;
+		} catch(apcf::InvalidValue&) { }
+
+		try {
+			auto serial = cfg.get("nan").value()->serialize();
+			out
+				<< "NaN was successfully serialized as `"
+				<< serial << "`,\nwithout the `eFloatNoFail` flag set." << std::endl;
+			r = false;
+		} catch(apcf::InvalidValue&) { }
+
+		{
+			apcf::SerializationRules rules = { };
+			rules.flags = apcf::SerializationRules::eFloatNoFail;
+			std::string serial;
+			serial = cfg.get("inf").value()->serialize(rules);
+			out << "Positive infinity serialized as `" << serial << "`\n";
+			serial = cfg.get("nan").value()->serialize(rules);
+			out << "NaN serialized as `" << serial << '`' << std::endl;
+		}
+
+		return r? eSuccess : eFailure;
+	}
+
+
 	utest::ResultType testFileWrite(std::ostream&) {
 		using namespace std::string_literals;
 		Config cfg = Config::parse(genericConfigSrc);
@@ -553,6 +590,7 @@ int main(int, char**) {
 		.RUN_("[parse] Unmatched group closure", testUnmatchedGroupClosure)
 		.RUN_("[serial] Simple serialization (pretty)", testSerialFullPretty)
 		.RUN_("[serial] Simple serialization (compact)", testSerialFullCompact)
+		.RUN_("[serial] Simple serialization (float NaN, infinity)", testSerialNan)
 		.RUN_("[file] Write to file", testFileWrite)
 		.RUN_("[file] Read from file", testFileRead);
 	return batch.failures() == 0? EXIT_SUCCESS : EXIT_FAILURE;
