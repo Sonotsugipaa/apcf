@@ -1,0 +1,11 @@
+# CMake build directories, as created by ./build.sh
+/build-*/
+
+# Any hidden file
+/.*/
+/.*
+!/.gitignore
+
+# Locally stored external dependencies
+/lib/
+/bin/
