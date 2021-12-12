@@ -17,7 +17,7 @@ namespace {
 	constexpr auto eNeutral = utest::ResultType::eNeutral;
 	constexpr auto eFailure = utest::ResultType::eFailure;
 
-	constexpr const char cfgFilePath[] = "test/big_autogen.cfg";
+	constexpr const char cfgFilePath[] = "test/.big_autogen.cfg";
 
 	auto rng = std::minstd_rand();
 	Config cfgWr, cfgRd;

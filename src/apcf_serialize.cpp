@@ -1,111 +1,16 @@
-#include <apcf.hpp>
-
-#include "apcf_parse.cpp"
+#include "apcf_.hpp"
 
 #include <cmath>
 #include <limits>
 
 
 
-namespace {
 namespace apcf_serialize {
 
 	using namespace apcf_util;
 
 	using apcf::Key;
 	using apcf::KeySpan;
-
-
-	class StringWriter : public apcf::io::Writer {
-	public:
-		std::string* dst;
-		size_t cursor;
-
-		#ifdef NDEBUG
-			StringWriter() { }
-		#else
-			StringWriter(): dst(nullptr), cursor(0) { }
-		#endif
-
-		StringWriter(std::string* dst, size_t begin):
-				dst(dst), cursor(begin)
-		{ }
-
-		void writeChar(char c) override {
-			assert(dst != nullptr);
-			dst->push_back(c);
-			++cursor;
-		}
-
-		void writeChars(
-				const char* begin,
-				const char* end
-		) override {
-			assert(dst != nullptr);
-			size_t distance = std::distance(begin, end);
-			dst->insert(dst->size(), begin, distance);
-			cursor += distance;
-		}
-
-		void writeChars(
-				const std::string& str
-		) override {
-			assert(dst != nullptr);
-			dst->insert(dst->size(), str.data(), str.size());
-			cursor += str.size();
-		}
-	};
-
-
-	class StdStreamWriter : public apcf::io::Writer {
-	public:
-		std::ostream* dst;
-
-		#ifdef NDEBUG
-			StdStreamWriter() { }
-		#else
-			StdStreamWriter(): dst(nullptr) { }
-		#endif
-
-		StdStreamWriter(std::ostream& dst):
-				dst(&dst)
-		{ }
-
-		void writeChar(char c) override {
-			assert(dst != nullptr);
-			dst->write(&c, 1);
-		}
-
-		void writeChars(
-				const char* begin,
-				const char* end
-		) override {
-			assert(dst != nullptr);
-			size_t distance = std::distance(begin, end);
-			dst->write(begin, distance);
-		}
-
-		void writeChars(
-				const std::string& str
-		) override {
-			assert(dst != nullptr);
-			dst->write(str.data(), str.size());
-		}
-	};
-
-
-	struct SerializationState {
-		std::string indentation;
-		unsigned indentationLevel;
-	};
-
-
-	struct SerializeData {
-		apcf::io::Writer& dst;
-		apcf::SerializationRules rules;
-		SerializationState& state;
-		bool lastLineWasEntry;
-	};
 
 
 	std::string mkIndent(apcf::SerializationRules rules, size_t levels) {
@@ -191,18 +96,18 @@ namespace apcf_serialize {
 		switch(rawData.type) {
 			case DataType::eNull: { r = "null"; } break;
 			case DataType::eBool: { r = rawData.data.boolValue? "true" : "false"; } break;
-			case DataType::eInt: { r = num::serializeIntNumber(rawData.data.intValue); } break;
+			case DataType::eInt: { r = apcf_num::serializeIntNumber(rawData.data.intValue); } break;
 			case DataType::eFloat: {
 				if(std::isfinite(rawData.data.floatValue)) [[likely]] {
-					r = num::serializeFloatNumber(rawData.data.floatValue);
+					r = apcf_num::serializeFloatNumber(rawData.data.floatValue);
 				} else {
 					if(rules.flags & apcf::SerializationRules::eFloatNoFail) {
 						if(std::isinf(rawData.data.floatValue)) {
-							r = num::serializeFloatNumber(
+							r = apcf_num::serializeFloatNumber(
 								std::numeric_limits<apcf::float_t>::max() *
 								((rawData.data.floatValue > 0)? 1.0f : -1.0f) );
 						} else {
-							r = num::serializeFloatNumber(0.0f);
+							r = apcf_num::serializeFloatNumber(0.0f);
 						}
 					} else {
 						if(std::isinf(rawData.data.floatValue)) {
@@ -304,12 +209,6 @@ namespace apcf_serialize {
 	}
 
 
-	struct SerializeHierarchyParams {
-		SerializeData* sd;
-		const std::map<apcf::Key, apcf::RawData>* map;
-		const Hierarchy* hierarchy;
-	};
-
 	void serializeHierarchy(
 			SerializeHierarchyParams& state,
 			const Key& key, const Key& parent
@@ -361,7 +260,7 @@ namespace apcf_serialize {
 				serializeLineEntry(sd, entry.first, entry.second);
 			}
 		} else {
-			auto hierarchy = Hierarchy(map);
+			auto hierarchy = apcf::ConfigHierarchy(map);
 			SerializeHierarchyParams saParams = {
 				.sd = &sd,
 				.map = &map,
@@ -373,7 +272,6 @@ namespace apcf_serialize {
 		}
 	}
 
-}
 }
 
 

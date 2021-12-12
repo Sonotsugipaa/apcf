@@ -1,17 +1,23 @@
-#include <apcf.hpp>
+#include "apcf_.hpp"
 
 #include <cassert>
+#include <cstring>
 
-// Files for the quasi-unity build
-#include "apcf_serialize.cpp"
+
+
+#define INVALID_VALUE_STR(TYPE_) ( \
+	"cannot get " + \
+	std::string(apcf::dataTypeStringOf(TYPE_)) + \
+	" value" \
+)
 
 
 
 namespace apcf {
 
 	bool isKeyValid(const std::string& str) {
-		assert(findKeyError(str) <= str.size());
-		return findKeyError(str) == str.size();
+		assert(apcf_util::findKeyError(str) <= str.size());
+		return apcf_util::findKeyError(str) == str.size();
 	}
 
 
@@ -39,7 +45,7 @@ namespace apcf {
 			size_t line, size_t lineChar, char whichChar, const std::string& expected
 	):
 			ConfigParsingError(
-				"unexpected character " + plainCharRep(whichChar) +
+				"unexpected character " + apcf_util::plainCharRep(whichChar) +
 				" at " + std::to_string(line+1) + ':' + std::to_string(lineChar+1) +
 				std::string(", expected ") + expected
 			),
@@ -82,7 +88,7 @@ namespace apcf {
 
 	Key::Key(std::string str) {
 		{
-			size_t err = findKeyError(str);
+			size_t err = apcf_util::findKeyError(str);
 			if(err < str.size()) throw InvalidKey(str, err);
 		}
 		std::string::operator=(std::move(str));
@@ -101,7 +107,7 @@ namespace apcf {
 				this->append(*(iter++));
 			}
 		} {
-			size_t err = findKeyError(*this);
+			size_t err = apcf_util::findKeyError(*this);
 			if(err < this->size()) throw InvalidKey(*this, err);
 		}
 	}
@@ -112,7 +118,7 @@ namespace apcf {
 	{
 		#ifndef NDEBUG
 			if(! empty()) {
-				size_t err = findKeyError(*this);
+				size_t err = apcf_util::findKeyError(*this);
 				assert(err == size());
 			}
 		#endif
@@ -494,6 +500,116 @@ namespace apcf {
 
 	void Config::setArray(const Key& key, array_t array) {
 		data_[key] = RawData::moveArray(array.data(), array.size());
+	}
+
+
+	apcf::ConfigHierarchy::ConfigHierarchy(const std::map<apcf::Key, apcf::RawData>& cfg) {
+		for(const auto& entry : cfg) {
+			putKey(entry.first);
+		}
+	}
+
+
+	void apcf::ConfigHierarchy::putKey(const apcf::Key& key) {
+		constexpr auto splitKey = [](const apcf::Key& key) {
+			constexpr size_t keyBasenameSizeHeuristic = 5;
+			std::vector<KeySpan> r;
+			r.reserve(key.size() / keyBasenameSizeHeuristic);
+			const char* beg = key.data();
+			const char* end = key.data() + key.size();
+			const char* cur = beg;
+
+			assert(beg != end);
+			while(cur != end) {
+				++ cur;
+				while(cur != end && *cur != GRAMMAR_KEY_SEPARATOR) {
+					++ cur;
+				}
+				r.push_back(KeySpan(beg, size_t(cur-beg)));
+			}
+
+			return r;
+		};
+
+		auto split = splitKey(key);
+		size_t size = split.size();
+		if(! split.empty()) tree[{ }].insert(split[0]);
+		for(size_t i=1; i < size; ++i) {
+			tree[split[i-1]].insert(split[i]);
+		}
+	}
+
+
+	const std::set<apcf::KeySpan>& apcf::ConfigHierarchy::getSubkeys(KeySpan ref) const {
+		static const std::set<KeySpan> emptySet = { };
+		auto found = tree.find(ref);
+		if(found == tree.end()) return emptySet;
+		return found->second;
+	}
+
+
+	bool apcf::ConfigHierarchy::collapse(KeySpan ref, KeySpan parent) {
+		/* Recursive condition on `n` (number of subkeys mapped to `ref`)
+		 * n=0  =>  Return value is false; end of recursion branch.
+		 * n=1  =>  Return value is true; if possible, move the subkey mapping to `parent`.
+		 * n>0  =>  Return value is true; recursively call `collapse` on every subkey. */
+		if(ref.empty()) return false;
+		auto subkeys0set = &getSubkeys(ref);
+		bool r = false;
+		if(! subkeys0set->empty()) {
+			std::vector<KeySpan> subkeys0 = apcf_util::setToVec(*subkeys0set);
+			if(subkeys0.size() == 1) {
+				auto subkey0 = *subkeys0.begin();
+				tree[parent].insert(subkey0);
+				tree.erase(ref);
+				collapse(subkey0, parent);
+				r = true;
+			} else {
+				for(const auto& subkey0 : subkeys0) {
+					r = collapse(subkey0, ref) || r;
+				}
+			}
+		}
+		return r;
+	}
+
+
+	bool apcf::ConfigHierarchy::collapse() {
+		bool r = false;
+		std::set<KeySpan> collapsed;
+
+		std::vector<KeySpan> candidates;
+		auto mkCandidates = [&]() {
+			const auto& candidatesSet = tree[{ }];
+			candidates.clear();
+			if(candidates.capacity() < candidatesSet.size()) {
+				candidates.reserve(candidatesSet.size());
+			}
+			for(const auto& entry : candidatesSet) {
+				candidates.push_back(entry);
+			}
+		};
+
+		/* Whenever `collapse(...)` returns true, the tree has been modified
+		 * and the iterators are (probably?) out of date. */
+		auto runPass = [&]() {
+			mkCandidates();
+			auto iter = candidates.begin();
+			auto end = candidates.end();
+			while(iter != end) {
+				if(collapse(*iter, { })) {
+					return true;
+				}
+				++iter;
+			}
+			return false;
+		};
+
+		while(runPass()) {
+			r = true;
+		}
+
+		return r;
 	}
 
 }

@@ -7,7 +7,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test)
 
 
 add_library(test-tools STATIC
-	test_tools.cpp)
+	test_tools.cpp )
 
 add_executable(UnitTest-apcf apcf-test.cpp)
 target_link_libraries(UnitTest-apcf test-tools apcf)

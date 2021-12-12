@@ -517,7 +517,7 @@ namespace {
 		using namespace std::string_literals;
 		Config cfg = Config::parse(genericConfigSrc);
 		cfg.write(
-			std::ofstream(tmpFileBase + "test_generic.cfg"s),
+			std::ofstream(tmpFileBase + ".test_generic.cfg"s),
 			apcf::SerializationRules {
 				.indentationSize = 1,
 				.flags =
@@ -530,7 +530,7 @@ namespace {
 	utest::ResultType testFileRead(std::ostream& out) {
 		using namespace std::string_literals;
 		Config cfgCmp = Config::parse(genericConfigSrc);
-		Config cfgFile = Config::read(std::ifstream(tmpFileBase + "test_generic.cfg"s));
+		Config cfgFile = Config::read(std::ifstream(tmpFileBase + ".test_generic.cfg"s));
 		if(cfgCmp.keyCount() != cfgFile.keyCount()) {
 			out
 				<< "Key number mismatch: read " << cfgFile.keyCount()

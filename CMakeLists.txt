@@ -36,10 +36,19 @@
 
 # Setup targets
 
-	add_library(apcf SHARED src/apcf.cpp)
+	add_library(apcf SHARED
+		src/apcf.cpp
+		src/apcf_util.cpp
+		src/apcf_num.cpp
+		src/apcf_parse.cpp
+		src/apcf_serialize.cpp )
+
 	set_target_properties(
 		apcf PROPERTIES
 		VERSION "${PROJECT_VERSION}" )
+
+	set_property(TARGET apcf
+		PROPERTY UNITY_BUILD true )
 
 
 # Add unit test module

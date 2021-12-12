@@ -1,19 +1,11 @@
-#include "apcf_util.cpp"
+#include "apcf_.hpp"
 
 #include <limits>
 #include <cassert>
 
 
 
-namespace {
-namespace apcf_parse {
-namespace num {
-
-	struct ParseResult {
-		size_t parsedChars;
-		unsigned base;
-	};
-
+namespace apcf_num {
 
 	apcf::int_t baseOf(
 			std::string::const_iterator strBeg,
@@ -42,28 +34,6 @@ namespace num {
 		} else {
 			return 10;
 		}
-	}
-
-
-	constexpr apcf::int_t charToDigit(char c) {
-		// Charset assumptions are already made in apcf_util.cpp
-		if(c >= '0' && c <= '9') return c - '0';
-		if(c >= 'a' && c <= 'z') return (c - 'a') + 0xa;
-		if(c >= 'A' && c <= 'Z') return (c - 'A') + 0xa;
-		return std::numeric_limits<apcf::int_t>::max();
-	}
-
-	constexpr char digitToChar(apcf::int_t digit) {
-		// Charset assumptions are already made in apcf_util.cpp
-		constexpr bool useCapitalLetters = false;
-		assert(digit >= 0);
-		if(digit <= 9) return digit + '0';
-		if constexpr(useCapitalLetters) {
-			if(digit >= 0xa && digit <= 0xf) return (digit + 0xa) - 'f';
-		} else {
-			if(digit >= 0xa && digit <= 0xf) return (digit + 0xa) - 'F';
-		}
-		return '\0';
 	}
 
 
@@ -160,9 +130,7 @@ namespace num {
 	}
 
 
-	std::string serializeIntNumber(
-			apcf::int_t n
-	) {
+	std::string serializeIntNumber(apcf::int_t n) {
 		constexpr apcf::int_t base = 10;
 		constexpr apcf::int_t digitsHeuristic = 10;
 		std::string r;
@@ -187,9 +155,7 @@ namespace num {
 	}
 
 
-	std::string serializeFloatNumber(
-			apcf::float_t n
-	) {
+	std::string serializeFloatNumber(apcf::float_t n) {
 		constexpr apcf::float_t base = 10;
 		if(n > std::numeric_limits<apcf::int_t>::max()) n = std::numeric_limits<apcf::int_t>::max() / 2;
 		if(n < std::numeric_limits<apcf::int_t>::min()) n = std::numeric_limits<apcf::int_t>::min() / 2;
@@ -212,6 +178,4 @@ namespace num {
 		return r;
 	}
 
-}
-}
 }

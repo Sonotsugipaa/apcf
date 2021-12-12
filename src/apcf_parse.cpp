@@ -1,13 +1,10 @@
-#include <apcf.hpp>
-
-#include "apcf_num.cpp"
+#include "apcf_.hpp"
 
 #include <fstream>
-#include <limits>
+#include <cstring>
 
 
 
-namespace {
 namespace apcf_parse {
 
 	using namespace apcf_util;
@@ -18,121 +15,6 @@ namespace apcf_parse {
 	}
 
 
-	class StringReader : public apcf::io::Reader {
-	public:
-		std::span<const char, std::dynamic_extent> str;
-		size_t cursor;
-		size_t limit;
-
-		StringReader() = default;
-
-		StringReader(
-				std::span<const char, std::dynamic_extent> str
-		):
-				str(str),
-				cursor(0),
-				limit(str.size())
-		{ }
-
-		bool isAtEof() const override {
-			assert(cursor <= str.size());
-			return cursor == limit;
-		}
-
-		char getChar() const override {
-			assert(cursor <= str.size());
-			char c = (cursor < limit)? str[cursor] : GRAMMAR_NULL;
-			return c;
-		}
-
-		bool fwdOrEof() override {
-			if(cursor < limit) {
-				{
-					char c = str[cursor];
-					if(c == GRAMMAR_NEWLINE) {
-						++ lineCtr;
-						linePos = 0;
-					} else {
-						++ linePos;
-					}
-				}
-				++ cursor;
-				return true;
-			}
-			return false;
-		}
-	};
-
-
-	class StdStreamReader : public apcf::io::Reader {
-	public:
-		std::istream* str;
-		size_t charsLeft;
-		char current;
-
-		StdStreamReader() = default;
-
-		StdStreamReader(std::istream& str, size_t limit):
-				str(&str),
-				charsLeft(limit)
-		{
-			fwdOrEof();
-		}
-
-		StdStreamReader(std::istream& str):
-				StdStreamReader(str, std::numeric_limits<size_t>::max())
-		{ }
-
-		bool isAtEof() const override {
-			return charsLeft <= 0;
-		}
-
-		char getChar() const override {
-			return current;
-		}
-
-		bool fwdOrEof() override {
-			if(isAtEof()) {
-				return false;
-			} else {
-				if(charsLeft > 0) {
-					if(str->read(&current, 1)) {
-						if(current == GRAMMAR_NEWLINE) {
-							++ lineCtr;
-							linePos = 0;
-						} else {
-							++ linePos;
-						}
-					} else {
-						current = GRAMMAR_NULL;
-						charsLeft = 0;
-						return false;
-					}
-				}
-			}
-			-- charsLeft;
-			return true;
-		}
-	};
-
-
-	struct ParseData {
-		apcf::Config cfg;
-		apcf::io::Reader& src;
-		std::vector<apcf::Key> keyStack;
-	};
-
-
-	constexpr bool isWhitespace(char c) {
-		constexpr std::string_view whitespaces = " \t\v\n";
-		for(const auto& cCmp : whitespaces) {
-			if(c == cCmp)  return true;
-		}
-		return false;
-	}
-
-
-	/** Returns `true` iff one or more characters have been skipped. */
 	bool skipWhitespaces(ParseData& pd) {
 		if(! isWhitespace(pd.src.getChar())) return false;
 		do {
@@ -142,7 +24,6 @@ namespace apcf_parse {
 	}
 
 
-	/** Returns `true` iff a comment has been skipped. */
 	bool skipComment(ParseData& pd) {
 		using namespace std::string_literals;
 		static const std::string secCharExpectStr =
@@ -180,18 +61,6 @@ namespace apcf_parse {
 		return true;
 	}
 
-	/** Returns `true` iff one or more comments have been skipped. */
-	bool skipComments(ParseData& pd) {
-		bool r = skipComment(pd);
-		do { /* NOP */ } while(skipComment(pd));
-		return r;
-	}
-
-	void skipWhitespacesAndComments(ParseData& pd) {
-		skipComments(pd);
-		do { /* NOP */ } while(skipWhitespaces(pd) && skipComments(pd));
-	}
-
 
 	/* Does not allow EOF at the end */ /**/
 	apcf::Key parseKey(ParseData& pd) {
@@ -215,8 +84,6 @@ namespace apcf_parse {
 		return apcf::Key(r);
 	}
 
-
-	apcf::RawData parseValue(ParseData&); // Fwd decl needed for `parseValueArray`
 
 	apcf::RawData parseValueArray(ParseData& pd) {
 		static const std::string expectStr = "a list of space separated values";
@@ -281,7 +148,7 @@ namespace apcf_parse {
 				c = pd.src.getChar();
 			}
 		} { // Parse it
-			auto result = num::parseNumber(buffer.begin(), buffer.end(), &r);
+			auto result = apcf_num::parseNumber(buffer.begin(), buffer.end(), &r);
 			assert(result.parsedChars <= buffer.size());
 			if(
 				(! buffer.empty()) &&
@@ -352,11 +219,6 @@ namespace apcf_parse {
 	}
 
 
-	/** Select which type of value to parse based on the first character:
-		* - arrays begin with GRAMMAR_ARRAY_BEGIN;
-		* - strings begin with GRAMMAR_STRING_DELIM;
-		* - numbers begin with a decimal digit;
-		* - boolean values begin with 'y', 'n', 't' or 'f'. */
 	apcf::RawData parseValue(ParseData& pd) {
 		char begChar = pd.src.getChar();
 		if(begChar == GRAMMAR_ARRAY_BEGIN) {
@@ -436,7 +298,6 @@ namespace apcf_parse {
 		return std::move(pd.cfg);
 	}
 
-}
 }
 
 
