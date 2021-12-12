@@ -3,9 +3,6 @@
 #include <cassert>
 
 // Files for the quasi-unity build
-#include "apcf_util.cpp"
-#include "apcf_num.cpp"
-#include "apcf_parse.cpp"
 #include "apcf_serialize.cpp"
 
 
