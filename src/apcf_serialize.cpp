@@ -304,14 +304,14 @@ namespace apcf_serialize {
 	}
 
 
-	struct SerializeAncestryParams {
+	struct SerializeHierarchyParams {
 		SerializeData* sd;
 		const std::map<apcf::Key, apcf::RawData>* map;
-		const Ancestry* ancestry;
+		const Hierarchy* hierarchy;
 	};
 
-	void serializeAncestry(
-			SerializeAncestryParams& state,
+	void serializeHierarchy(
+			SerializeHierarchyParams& state,
 			const Key& key, const Key& parent
 	) {
 		// Calculate the basename of `key` by using the known parent size
@@ -336,16 +336,16 @@ namespace apcf_serialize {
 
 		// Serialize group, if one exists
 		{
-			const auto& parenthood = state.ancestry->getSubkeys(KeySpan(key));
+			const auto& parenthood = state.hierarchy->getSubkeys(KeySpan(key));
 			if(! parenthood.empty()) {
 				if(key.empty()) {
 					for(const auto& child : parenthood) {
-						serializeAncestry(state, Key(child), key);
+						serializeHierarchy(state, Key(child), key);
 					}
 				} else {
 					serializeLineGroupBeg(*state.sd, keyBasename);
 					for(const auto& child : parenthood) {
-						serializeAncestry(state, Key(child), key);
+						serializeHierarchy(state, Key(child), key);
 					}
 					serializeLineGroupEnd(*state.sd);
 				}
@@ -361,14 +361,14 @@ namespace apcf_serialize {
 				serializeLineEntry(sd, entry.first, entry.second);
 			}
 		} else {
-			auto ancestry = Ancestry(map);
-			SerializeAncestryParams saParams = {
+			auto hierarchy = Hierarchy(map);
+			SerializeHierarchyParams saParams = {
 				.sd = &sd,
 				.map = &map,
-				.ancestry = &ancestry };
-			ancestry.collapse();
-			for(const auto& rootChild : ancestry.getSubkeys({ })) {
-				serializeAncestry(saParams, Key(rootChild), "");
+				.hierarchy = &hierarchy };
+			hierarchy.collapse();
+			for(const auto& rootChild : hierarchy.getSubkeys({ })) {
+				serializeHierarchy(saParams, Key(rootChild), "");
 			}
 		}
 	}
@@ -418,7 +418,7 @@ namespace apcf {
 		apcf_serialize::serialize(serializeData, data_);
 	}
 
-	void Config::write(OutputStream& out, SerializationRules sr) const {
+	void Config::write(std::ostream& out, SerializationRules sr) const {
 		SerializationState state = { };
 		auto wr = StdStreamWriter(out);
 		SerializeData serializeData = {

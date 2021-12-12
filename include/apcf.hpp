@@ -10,6 +10,8 @@
 #include <optional>
 #include <initializer_list>
 
+#include <apcf_fwd.hpp>
+
 
 
 namespace apcf::io {
@@ -82,20 +84,16 @@ namespace apcf {
 		}
 	}
 
+
 	using int_t = long long;
 	using float_t = double;
-	using string_t = std::basic_string<char>;
-
-	using InputStream = std::basic_istream<char>;
-	using OutputStream = std::basic_ostream<char>;
+	using string_t = std::string;
 
 
 	/* Valid keys are sequences of alphanumeric characters,hyphens or underscores,
 	 * separated by periods. */
 	bool isKeyValid(const std::string&);
 
-
-	class Key;
 
 	class KeySpan : public std::span<const char> {
 		friend Key;
@@ -207,7 +205,10 @@ namespace apcf {
 
 	class Config {
 	private:
+		using Hierarchy = ConfigHierarchy;
+
 		std::map<Key, RawData> data_;
+		Hierarchy* hierarchy_;
 
 	public:
 		static Config parse(const std::string& str) { return parse(std::string(str.data(), str.size())); }
@@ -215,15 +216,15 @@ namespace apcf {
 		static Config parse(const char* charSeqPtr, size_t length);
 		static Config read(io::Reader&);
 		static Config read(io::Reader&& tmp) { auto& tmpProxy = tmp; return read(tmpProxy); }
-		static Config read(InputStream&);
-		static Config read(InputStream&, size_t count);
-		static Config read(InputStream&& tmp) { auto& tmpProxy = tmp; return read(tmpProxy); }
+		static Config read(std::istream&);
+		static Config read(std::istream&, size_t count);
+		static Config read(std::istream&& tmp) { auto& tmpProxy = tmp; return read(tmpProxy); }
 
 		std::string serialize(SerializationRules = { }) const;
 		void write(io::Writer&, SerializationRules = { }) const;
 		void write(io::Writer&& tmp, SerializationRules sr = { }) const { auto& tmpProxy = tmp; return write(tmpProxy, sr); }
-		void write(OutputStream&, SerializationRules = { }) const;
-		void write(OutputStream&& tmp, SerializationRules sr = { }) const { auto& tmpProxy = tmp; return write(tmpProxy, sr); }
+		void write(std::ostream&, SerializationRules = { }) const;
+		void write(std::ostream&& tmp, SerializationRules sr = { }) const { auto& tmpProxy = tmp; return write(tmpProxy, sr); }
 
 		void merge(const Config&);
 		void merge(Config&&);

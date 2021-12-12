@@ -132,11 +132,11 @@ namespace apcf_util {
 	};
 
 
-	class Ancestry {
+	class Hierarchy {
 	public:
 		std::map<KeySpan, std::set<KeySpan>> tree;
 
-		Ancestry(const std::map<apcf::Key, apcf::RawData>&);
+		Hierarchy(const std::map<apcf::Key, apcf::RawData>&);
 
 		void putKey(const apcf::Key&);
 
@@ -147,14 +147,14 @@ namespace apcf_util {
 	};
 
 
-	Ancestry::Ancestry(const std::map<apcf::Key, apcf::RawData>& cfg) {
+	Hierarchy::Hierarchy(const std::map<apcf::Key, apcf::RawData>& cfg) {
 		for(const auto& entry : cfg) {
 			putKey(entry.first);
 		}
 	}
 
 
-	void Ancestry::putKey(const apcf::Key& key) {
+	void Hierarchy::putKey(const apcf::Key& key) {
 		constexpr auto splitKey = [](const apcf::Key& key) {
 			constexpr size_t keyBasenameSizeHeuristic = 5;
 			std::vector<KeySpan> r;
@@ -184,7 +184,7 @@ namespace apcf_util {
 	}
 
 
-	const std::set<KeySpan>& Ancestry::getSubkeys(KeySpan ref) const {
+	const std::set<KeySpan>& Hierarchy::getSubkeys(KeySpan ref) const {
 		static const std::set<KeySpan> emptySet = { };
 		auto found = tree.find(ref);
 		if(found == tree.end()) return emptySet;
@@ -192,7 +192,7 @@ namespace apcf_util {
 	}
 
 
-	bool Ancestry::collapse(KeySpan ref, KeySpan parent) {
+	bool Hierarchy::collapse(KeySpan ref, KeySpan parent) {
 		/* Recursive condition on `n` (number of subkeys mapped to `ref`)
 		 * n=0  =>  Return value is false; end of recursion branch.
 		 * n=1  =>  Return value is true; if possible, move the subkey mapping to `parent`.
@@ -218,7 +218,7 @@ namespace apcf_util {
 	}
 
 
-	bool Ancestry::collapse() {
+	bool Hierarchy::collapse() {
 		bool r = false;
 		std::set<KeySpan> collapsed;
 

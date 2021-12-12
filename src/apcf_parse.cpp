@@ -467,11 +467,11 @@ namespace apcf {
 		return apcf_parse::parse(pd);
 	}
 
-	Config Config::read(InputStream& in) {
+	Config Config::read(std::istream& in) {
 		return read(in, std::numeric_limits<size_t>::max());
 	}
 
-	Config Config::read(InputStream& in, size_t count) {
+	Config Config::read(std::istream& in, size_t count) {
 		auto src = StdStreamReader(in, count);
 		ParseData pd = {
 			.cfg = { },
