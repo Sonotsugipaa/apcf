@@ -235,7 +235,7 @@ namespace apcf_serialize {
 
 		// Serialize group, if one exists
 		{
-			const auto& parenthood = state.hierarchy->getSubkeys(KeySpan(key));
+			const auto& parenthood = state.hierarchy->getSubkeys(Key(key));
 			if(! parenthood.empty()) {
 				if(key.empty()) {
 					for(const auto& child : parenthood) {
@@ -260,7 +260,12 @@ namespace apcf_serialize {
 				serializeLineEntry(sd, entry.first, entry.second);
 			}
 		} else {
-			auto hierarchy = apcf::ConfigHierarchy(map);
+			apcf::ConfigHierarchy hierarchy;
+			if(sd.rules.hierarchy == nullptr) {
+				hierarchy = apcf::ConfigHierarchy(map);
+			} else {
+				hierarchy = *sd.rules.hierarchy;
+			}
 			SerializeHierarchyParams saParams = {
 				.sd = &sd,
 				.map = &map,

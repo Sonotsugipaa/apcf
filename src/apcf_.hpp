@@ -1,6 +1,7 @@
 #pragma once
 
 #include <apcf.hpp>
+#include <apcf_hierarchy.hpp>
 
 #include <limits>
 #include <cassert>
@@ -481,25 +482,5 @@ namespace apcf_serialize {
 	);
 
 	void serialize(SerializeData& sd, const std::map<apcf::Key, apcf::RawData>& hierarchyMap);
-
-}
-
-
-
-namespace apcf {
-
-	class ConfigHierarchy {
-	public:
-		std::map<KeySpan, std::set<KeySpan>> tree;
-
-		ConfigHierarchy(const std::map<apcf::Key, apcf::RawData>&);
-
-		void putKey(const apcf::Key&);
-
-		const std::set<KeySpan>& getSubkeys(KeySpan) const;
-
-		bool collapse(KeySpan, KeySpan parent);
-		bool collapse();
-	};
 
 }

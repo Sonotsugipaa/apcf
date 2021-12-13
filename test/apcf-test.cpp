@@ -1,11 +1,13 @@
 #include <test_tools.hpp>
 
 #include <apcf.hpp>
+#include <apcf_hierarchy.hpp>
 
 #include <iostream>
 #include <fstream>
 #include <cstring>
 #include <cmath>
+#include <set>
 
 
 
@@ -285,6 +287,23 @@ namespace {
 	}
 
 
+	utest::ResultType testGetSubkeys(std::ostream& out) {
+		constexpr unsigned expectedSubkeys = 3;
+		Config cfg = Config::parse("a=1 a.b=2 a.c=3 a.d.e=4 a.d.f=5 g=6 h.i=7");
+		auto hierarchy = cfg.getHierarchy();
+		bool success = true;
+		auto subkeys = hierarchy.getSubkeys("a");
+		if(subkeys.size() != expectedSubkeys) {
+			success = false;
+			out
+				<< "Config::getSubkeysOf returned " << subkeys.size()
+				<< " keys, expected " << expectedSubkeys << '\n';
+		}
+		out.flush();
+		return success? eSuccess : eFailure;
+	}
+
+
 	utest::ResultType testStrConfig(std::ostream& out) {
 		Config cfg = Config::parse("nothing = \"zero\"\n generic.key = \"one \\\\ \\\"quote\\\"\"");
 		auto val = cfg.getString("generic.key");
@@ -428,10 +447,9 @@ namespace {
 			"  positive = 1\n"
 			"}\n"
 			"rootvalue-string = \"str \\\"literal\\\"\"\n";
-		apcf::SerializationRules rules = {
-			.indentationSize = 2,
-			.flags =
-				unsigned(apcf::SerializationRules::ePretty) };
+		apcf::SerializationRules rules = { };
+		rules.flags = apcf::SerializationRules::ePretty;
+		rules.indentationSize = 2;
 		auto serialized = cfg.serialize(rules);
 		if(serialized != expect) {
 			out << "// The serialized config is probably incorrect.\n";
@@ -463,10 +481,8 @@ namespace {
 		"rootvalue-int=1 "
 		"rootvalue-int{negative=-1 positive=1}"
 		"rootvalue-string=\"str \\\"literal\\\"\"";
-		apcf::SerializationRules rules = {
-			.indentationSize = 2,
-			.flags =
-				unsigned(apcf::SerializationRules::eNull) };
+		apcf::SerializationRules rules = { };
+		rules.flags = apcf::SerializationRules::eNull;
 		auto serialized = cfg.serialize(rules);
 		if(serialized != expect) {
 			out << "// The serialized config is probably incorrect.\n";
@@ -516,13 +532,11 @@ namespace {
 	utest::ResultType testFileWrite(std::ostream&) {
 		using namespace std::string_literals;
 		Config cfg = Config::parse(genericConfigSrc);
+		apcf::SerializationRules rules = { };
+		rules.flags = apcf::SerializationRules::eNull;
 		cfg.write(
 			std::ofstream(tmpFileBase + ".test_generic.cfg"s),
-			apcf::SerializationRules {
-				.indentationSize = 1,
-				.flags =
-					apcf::SerializationRules::eNull
-			} );
+			rules );
 		return eSuccess;
 	}
 
@@ -573,6 +587,7 @@ int main(int, char**) {
 		.RUN_("Invalid keys", testInvalidKeys)
 		.RUN_("Config merge (copy)", testMerge<false>)
 		.RUN_("Config merge (move)", testMerge<true>)
+		.RUN_("Get subkeys", testGetSubkeys)
 		.RUN_("[parse] Single line comment, then EOL", testReadOnelineCommentEol)
 		.RUN_("[parse] Single line comment, then EOF", testReadOnelineCommentEof)
 		.RUN_("[parse] Single line empty comment", testReadOnelineCommentEmpty)

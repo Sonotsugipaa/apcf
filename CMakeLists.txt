@@ -38,6 +38,7 @@
 
 	add_library(apcf SHARED
 		src/apcf.cpp
+		src/apcf_config.cpp
 		src/apcf_util.cpp
 		src/apcf_num.cpp
 		src/apcf_parse.cpp

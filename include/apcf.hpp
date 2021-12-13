@@ -6,7 +6,8 @@
 #include <string_view>
 #include <span>
 #include <map>
-#include <functional>
+#include <set>
+#include <vector>
 #include <optional>
 #include <initializer_list>
 
@@ -96,11 +97,11 @@ namespace apcf {
 
 
 	class KeySpan : public std::span<const char> {
+	private:
 		friend Key;
+		size_t depth_;
 
 	public:
-		size_t depth;
-
 		KeySpan();
 		explicit KeySpan(const Key&);
 		KeySpan(const Key&, size_t end);
@@ -131,6 +132,8 @@ namespace apcf {
 		Key ancestor(size_t offset) const;
 		Key parent() const { return ancestor(1); };
 
+		size_t getDepth() const;
+
 		std::string basename() const;
 
 		const std::string& asString() const { return *this; }
@@ -146,8 +149,9 @@ namespace apcf {
 			eCompactArrays  = 0b01000,
 			eFloatNoFail    = 0b10000
 		};
-		size_t indentationSize;
-		unsigned flags;
+		const ConfigHierarchy* hierarchy = nullptr;
+		size_t indentationSize = 3;
+		unsigned flags = 0;
 	};
 
 
@@ -203,12 +207,11 @@ namespace apcf {
 	using array_t = std::vector<RawData>;
 	using array_span_t = std::span<const RawData>;
 
+
+
 	class Config {
 	private:
-		using Hierarchy = ConfigHierarchy;
-
 		std::map<Key, RawData> data_;
-		Hierarchy* hierarchy_;
 
 	public:
 		static Config parse(const std::string& str) { return parse(std::string(str.data(), str.size())); }
@@ -237,23 +240,16 @@ namespace apcf {
 
 		size_t keyCount() const;
 
+		/** Returns the Config's hierarchy, which can be used to implement logic
+		 * that depends on the relationships between keys. */
+		ConfigHierarchy getHierarchy() const;
+
 		std::optional<const RawData*> get(const Key&) const;
 		std::optional<bool>           getBool(const Key&) const;
 		std::optional<int_t>          getInt(const Key&) const;
 		std::optional<float_t>        getFloat(const Key&) const;
 		std::optional<string_t>       getString(const Key&) const;
 		std::optional<array_span_t>   getArray(const Key&) const;
-		bool         coalesce      (const Key&, bool defaultValue) const;
-		bool         coalesceBool  (const Key&, bool defaultValue) const;
-		int_t        coalesceInt   (const Key&, int_t defaultValue) const;
-		float_t      coalesceFloat (const Key&, float_t defaultValue) const;
-		string_t     coalesceString(const Key&, const string_t& defaultValue) const;
-		array_span_t coalesceArray (const Key&, const array_t& defaultValue) const;
-		bool         coalesceBool  (const Key&, std::function<bool ()> defaultValueGetter) const;
-		int_t        coalesceInt   (const Key&, std::function<int_t ()> defaultValueGetter) const;
-		float_t      coalesceFloat (const Key&, std::function<float_t ()> defaultValueGetter) const;
-		string_t     coalesceString(const Key&, std::function<string_t ()> defaultValueGetter) const;
-		array_span_t coalesceArray (const Key&, std::function<array_t ()> defaultValueGetter) const;
 
 		void set      (const Key&, RawData);
 		void setBool  (const Key&, bool value);
@@ -261,17 +257,6 @@ namespace apcf {
 		void setFloat (const Key&, float_t value);
 		void setString(const Key&, string_t value);
 		void setArray (const Key&, array_t value);
-		bool setNull      (const Key&, RawData defaultValue);
-		bool setNullBool  (const Key&, bool defaultValue);
-		bool setNullInt   (const Key&, int_t defaultValue);
-		bool setNullFloat (const Key&, float_t defaultValue);
-		bool setNullString(const Key&, string_t defaultValue);
-		bool setNullArray (const Key&, array_t defaultValue);
-		bool setNullBool  (const Key&, bool, std::function<bool ()> defaultValueGetter);
-		bool setNullInt   (const Key&, int_t, std::function<int_t ()> defaultValueGetter);
-		bool setNullFloat (const Key&, float_t, std::function<float_t ()> defaultValueGetter);
-		bool setNullString(const Key&, string_t, std::function<string_t ()> defaultValueGetter);
-		bool setNullArray (const Key&, string_t, std::function<array_t ()> defaultValueGetter);
 	};
 
 
