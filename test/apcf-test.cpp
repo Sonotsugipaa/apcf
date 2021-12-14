@@ -25,7 +25,7 @@ namespace {
 	constexpr const char* genericConfigSrc =
 		"1 = 1\n"
 		"1.1 = 1.5\n"
-		"1.2 = 1.25\n"
+		"1.2 = 0.925\n"
 		"rootvalue-int = 1\n"
 		"rootvalue-int.negative = -1\n"
 		"rootvalue-int.positive = +1\n"
@@ -410,7 +410,7 @@ namespace {
 			"1 = 1\n"
 			"1 {\n"
 			"  1 = 1.5\n"
-			"  2 = 1.25\n"
+			"  2 = 0.925\n"
 			"}\n"
 			"group1 {\n"
 			"  group2 {\n"
@@ -463,7 +463,7 @@ namespace {
 		Config cfg = Config::parse(genericConfigSrc);
 		constexpr auto expect =
 		"1=1 "
-		"1{1=1.5 2=1.25}"
+		"1{1=1.5 2=0.925}"
 		"group1{"
 		"group2{value1=3 value2=4}"
 		"group3.value1=5 "

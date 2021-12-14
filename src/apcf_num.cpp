@@ -17,7 +17,10 @@ namespace apcf_num {
 		if(*strBeg == '-' || *strBeg == '+') ++ strBeg;
 		if(*strBeg == '0') {
 			++ strBeg;
-			if(strBeg == strEnd) {
+			if(
+				(strBeg == strEnd) ||
+				(*strBeg == '.')
+			) {
 				return 10;
 			} else {
 				*basePrefixLenDst += 2;

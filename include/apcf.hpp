@@ -26,7 +26,7 @@ namespace apcf::io {
 		Reader(): lineCtr(0), linePos(0) { }
 		virtual ~Reader() { }
 
-		/** Returns `true` if the cursor is at (or past) the ond of
+		/** Returns `true` if the cursor is at (or past) the end of
 		 * the stream/file, `false` otherwise. */
 		virtual bool isAtEof() const = 0;
 
