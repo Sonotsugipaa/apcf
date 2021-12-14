@@ -112,16 +112,14 @@ namespace apcf_parse {
 		std::string r;
 		fwd(pd.src, expectStr);
 		char cur = pd.src.getChar();
-		do {
+		while(! (cur == GRAMMAR_STRING_DELIM)) {
 			if(cur == GRAMMAR_STRING_ESCAPE) {
 				// Skip the escape char, and do not check the next one before pushing it
 				FWD_
 			}
 			r.push_back(cur);
 			FWD_
-		} while(! (
-			(cur == GRAMMAR_STRING_DELIM)
-		));
+		}
 		pd.src.fwdOrEof();
 		return apcf::RawData(std::move(r));
 		#undef FWD_
