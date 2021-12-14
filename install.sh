@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/bin/env bash
 
 set -e # Terminate the script when an error occurs
 
-: ${fakeroot=''}
-: ${prefix_lib='usr/local/lib'}
-: ${prefix_include='usr/local/include'}
+: ${fakeroot='.'}
+: ${prefix_lib='lib'}
+: ${prefix_include='include'}
 : ${buildpath='build-Release'}
 
 function err {
@@ -55,6 +55,8 @@ verbose '' install -d "$fakeroot/$prefix_include"
 verbose '' install -d "$fakeroot/$prefix_lib"
 
 verbose '' install -pt "$fakeroot/$prefix_include" "include/apcf.hpp"
+verbose '' install -pt "$fakeroot/$prefix_include" "include/apcf_fwd.hpp"
+verbose '' install -pt "$fakeroot/$prefix_include" "include/apcf_hierarchy.hpp"
 
 verbose '' install -pt "$fakeroot/$prefix_lib" "$libapcf_so_M_m_p"
 (

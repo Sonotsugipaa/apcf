@@ -55,3 +55,38 @@
 # Add unit test module
 
 	add_subdirectory(test)
+
+
+# Setup `apcfConfig.cmake` holy fuck this is copypasty
+
+add_library(apcf::apcf ALIAS apcf)
+
+include(GNUInstallDirs)
+install(
+	TARGETS apcf
+	EXPORT apcfTargets
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} )
+
+install(
+	EXPORT apcfTargets
+	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/apcf
+	NAMESPACE apcf::apcf
+	FILE apcfTargets.cmake )
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+	"Config.cmake.in"
+	"apcfConfig.cmake"
+	INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/apcf
+	PATH_VARS CMAKE_INSTALL_LIBDIR )
+
+write_basic_package_version_file(
+	${CMAKE_CURRENT_BINARY_DIR}/apcfConfigVersion.cmake
+	VERSION "${PROJECT_VERSION}"
+	COMPATIBILITY SameMajorVersion )
+
+install(
+	FILES
+		"${CMAKE_CURRENT_BINARY_DIR}/apcfConfig.cmake"
+		"${CMAKE_CURRENT_BINARY_DIR}/apcfConfigVersion.cmake"
+	DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/apcf" )
