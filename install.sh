@@ -57,6 +57,7 @@ verbose '' install -d "$fakeroot/$prefix_lib"
 verbose '' install -pt "$fakeroot/$prefix_include" "include/apcf.hpp"
 verbose '' install -pt "$fakeroot/$prefix_include" "include/apcf_fwd.hpp"
 verbose '' install -pt "$fakeroot/$prefix_include" "include/apcf_hierarchy.hpp"
+verbose '' install -pt "$fakeroot/$prefix_include" "include/apcf_templates.hpp"
 
 verbose '' install -pt "$fakeroot/$prefix_lib" "$libapcf_so_M_m_p"
 (

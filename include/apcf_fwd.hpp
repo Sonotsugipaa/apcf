@@ -18,4 +18,13 @@ namespace apcf {
 	class Config;
 	class ConfigHierarchy;
 
+	class ConfigError;
+	class InvalidKey;
+	class InvalidValue;
+	class ConfigParsingError;
+	class UnexpectedChar;
+	class UnexpectedEof;
+	class UnclosedGroup;
+	class UnmatchedGroupClosure;
+
 }

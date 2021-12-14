@@ -26,9 +26,9 @@ namespace {
 	std::string genKey(unsigned depth) {
 		#define PUSH_DIGITS_ { for(size_t i=0; i < levelLength; ++i) r.push_back(digits[rng() % base]); }
 		constexpr unsigned levelLength = 5;
-		constexpr unsigned base = 62;
+		constexpr unsigned base = 64;
 		constexpr const char digits[] =
-			"0123456789"
+			"_-0123456789"
 			"abcdefghijklmnopqrstuvwxyz"
 			"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 		static_assert(base == sizeof(digits)-1);
@@ -157,9 +157,9 @@ namespace {
 			genEntries(&cfgWr, genKey(0), 0, 16);
 		}
 		auto begTime = nowUs();
-		auto rules = Rules {
-			.indentationSize = 3,
-			.flags = Rules::ePretty | Rules::eCompactArrays };
+		Rules rules = { };
+		rules.indentationSize = 3,
+		rules.flags = Rules::ePretty | Rules::eCompactArrays;
 		cfgWr.write(std::ofstream(cfgFilePath), rules);
 		auto endTime = (nowUs() - begTime);
 		out
