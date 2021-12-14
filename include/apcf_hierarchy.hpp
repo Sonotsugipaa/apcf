@@ -28,21 +28,14 @@ namespace apcf {
 
 		const std::set<Key>& getSubkeys(const Key&) const;
 
-		/** Where possible, remove lines of relationships and replace them with
-		 * single top-to-bottom relationships.
+		/** If the given key has exactely one subkey, recursively replaces
+		 * the argument with it; returns the first subkey that has zero
+		 * or multiple subkeys.
 		 *
-		 * For example:
-		 * `a => a.b => a.b.c => a.b.c.d` is replaced by
-		 * `a => a.b.c.d`. */
-		void collapse();
-
-		/** The opposite of `collapse`: where possible, remove relationships
-		 * where keys are distant by more than 1 level and replace them with
-		 * lines of level-by-level relationships.
-		 *
-		 * This will never have any significant effect if `collapse` is never
-		 * used on the ConfigHierarchy. */
-		void stretch();
+		 * The returned reference may point to a Key instance owned by the
+		 * ConfigHierarchy, so it should be copied (rather than referenced)
+		 * if the latter is modified or destroyed. */
+		const Key& autocomplete(const Key&) const;
 	};
 
 }

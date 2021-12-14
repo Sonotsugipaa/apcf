@@ -1,5 +1,7 @@
 #include "apcf_.hpp"
 
+#include <cstring>
+
 
 
 #define INVALID_VALUE_STR(TYPE_) ( \
@@ -7,6 +9,44 @@
 	std::string(apcf::dataTypeStringOf(TYPE_)) + \
 	" value" \
 )
+
+
+
+namespace {
+
+	// Used exclusively as a pseudo-almost-functor for ConfigHierarchy::autocomplete
+	struct AutocompleteRecursiveState {
+		const apcf::ConfigHierarchy* hierarchy;
+		const apcf::Key* returnKey;
+
+		bool recurse() {
+			const auto& subkeys = hierarchy->getSubkeys(*returnKey);
+			if(subkeys.size() == 1) {
+				returnKey = &(*subkeys.begin());
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		AutocompleteRecursiveState(
+				const apcf::ConfigHierarchy& hierarchy,
+				const apcf::Key& key
+		):
+				hierarchy(&hierarchy),
+				returnKey(&key)
+		{
+			while(recurse()) {
+				// NOP
+			}
+		}
+
+		operator const apcf::Key&() const {
+			return *returnKey;
+		}
+	};
+
+}
 
 
 
@@ -277,53 +317,64 @@ namespace apcf {
 	}
 
 
-	void apcf::ConfigHierarchy::collapse() {
-		std::set<KeySpan> collapsed;
-
-		std::vector<KeySpan> candidates;
-		auto mkCandidates = [&]() {
-			const auto& candidatesSet = tree_[{ }];
-			candidates.clear();
-			if(candidates.capacity() < candidatesSet.size()) {
-				candidates.reserve(candidatesSet.size());
-			}
-			for(const auto& entry : candidatesSet) {
-				candidates.push_back(KeySpan(entry));
-			}
-		};
-
-		/* Whenever `collapse_(...)` returns true, the tree has been modified
-		 * and the iterators are out of date. */
-		auto runPass = [&]() {
-			mkCandidates();
-			auto iter = candidates.begin();
-			auto end = candidates.end();
-			while(iter != end) {
-				if(collapse_(*iter, { })) {
-					return true;
-				}
-				++iter;
-			}
-			return false;
-		};
-
-		while(runPass()) {
-			// NOP
+	const Key& apcf::ConfigHierarchy::autocomplete(const Key& base) const {
+		if(base.empty()) return base;
+		auto subkeys = getSubkeys(base);
+		if(subkeys.size() == 1) {
+			return AutocompleteRecursiveState(*this, base);
+		} else {
+			return base;
 		}
 	}
 
 
-	void ConfigHierarchy::stretch() {
-		/* This implementation just reconstruct the hierarchy, which is
-		 * way heavier than necessary but it saves me a headache. */
-		auto oldTree = std::move(tree_);
-		tree_.clear();
+	// void apcf::ConfigHierarchy::collapse() {
+	// 	std::set<KeySpan> collapsed;
+	//
+	// 	std::vector<KeySpan> candidates;
+	// 	auto mkCandidates = [&]() {
+	// 		const auto& candidatesSet = tree_[{ }];
+	// 		candidates.clear();
+	// 		if(candidates.capacity() < candidatesSet.size()) {
+	// 			candidates.reserve(candidatesSet.size());
+	// 		}
+	// 		for(const auto& entry : candidatesSet) {
+	// 			candidates.push_back(KeySpan(entry));
+	// 		}
+	// 	};
+	//
+	// 	/* Whenever `collapse_(...)` returns true, the tree has been modified
+	// 	 * and the iterators are out of date. */
+	// 	auto runPass = [&]() {
+	// 		mkCandidates();
+	// 		auto iter = candidates.begin();
+	// 		auto end = candidates.end();
+	// 		while(iter != end) {
+	// 			if(collapse_(*iter, { })) {
+	// 				return true;
+	// 			}
+	// 			++iter;
+	// 		}
+	// 		return false;
+	// 	};
+	//
+	// 	while(runPass()) {
+	// 		// NOP
+	// 	}
+	// }
 
-		for(const auto& parenthood : oldTree) {
-			for(const auto& childKey : parenthood.second) {
-				putKey(childKey);
-			}
-		}
-	}
+
+	// void ConfigHierarchy::stretch() {
+	// 	/* This implementation just reconstruct the hierarchy, which is
+	// 	 * way heavier than necessary but it saves me a headache. */
+	// 	auto oldTree = std::move(tree_);
+	// 	tree_.clear();
+	//
+	// 	for(const auto& parenthood : oldTree) {
+	// 		for(const auto& childKey : parenthood.second) {
+	// 			putKey(childKey);
+	// 		}
+	// 	}
+	// }
 
 }

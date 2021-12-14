@@ -239,12 +239,12 @@ namespace apcf_serialize {
 			if(! parenthood.empty()) {
 				if(key.empty()) {
 					for(const auto& child : parenthood) {
-						serializeHierarchy(state, Key(child), key);
+						serializeHierarchy(state, state.hierarchy->autocomplete(child), key);
 					}
 				} else {
 					serializeLineGroupBeg(*state.sd, keyBasename);
 					for(const auto& child : parenthood) {
-						serializeHierarchy(state, Key(child), key);
+						serializeHierarchy(state, state.hierarchy->autocomplete(child), key);
 					}
 					serializeLineGroupEnd(*state.sd);
 				}
@@ -261,18 +261,19 @@ namespace apcf_serialize {
 			}
 		} else {
 			apcf::ConfigHierarchy hierarchy;
+			const apcf::ConfigHierarchy* hierarchyPtr;
 			if(sd.rules.hierarchy == nullptr) {
 				hierarchy = apcf::ConfigHierarchy(map);
+				hierarchyPtr = &hierarchy;
 			} else {
-				hierarchy = *sd.rules.hierarchy;
+				hierarchyPtr = sd.rules.hierarchy;
 			}
 			SerializeHierarchyParams saParams = {
 				.sd = &sd,
 				.map = &map,
-				.hierarchy = &hierarchy };
-			hierarchy.collapse();
-			for(const auto& rootChild : hierarchy.getSubkeys({ })) {
-				serializeHierarchy(saParams, Key(rootChild), "");
+				.hierarchy = hierarchyPtr };
+			for(const auto& rootChild : hierarchyPtr->getSubkeys({ })) {
+				serializeHierarchy(saParams, hierarchyPtr->autocomplete(rootChild), "");
 			}
 		}
 	}
