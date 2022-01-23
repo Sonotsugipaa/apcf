@@ -273,7 +273,7 @@ namespace apcf_serialize {
 				.map = &map,
 				.hierarchy = hierarchyPtr };
 			for(const auto& rootChild : hierarchyPtr->getSubkeys({ })) {
-				serializeHierarchy(saParams, hierarchyPtr->autocomplete(rootChild), "");
+				serializeHierarchy(saParams, hierarchyPtr->autocomplete(rootChild), { });
 			}
 		}
 	}
