@@ -13,8 +13,7 @@
 	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
 	include_directories(include)
-	link_directories(lib)
-	link_directories(bin)
+	link_directories(lib bin)
 
 
 # Set warning levels
@@ -22,7 +21,7 @@
 	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 		add_compile_options(-Wall -Wextra -Wpedantic)
 	elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-		add_compile_options(\Wall)
+		# add_compile_options(\\Wall) # How...?
 	else()
 		message(WARNING "Toolchain \"${CMAKE_CXX_COMPILER_ID}\" not recognized by the project")
 	endif()
@@ -35,8 +34,16 @@
 
 
 # Setup targets
-
-	add_library(apcf SHARED
+		
+	# Windows needs a lot of fluff in order to create a DLL, and I'm not going to copy paste base64-like macros everywhere if I'm targeting Linux.
+	# Solution: Windows uses a static build, while Linux (and other unsupported environments) use shared builds.
+	# Windows is already bloated all the way down to hell, anyway.
+	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+		set(APCF_LIB_TYPE STATIC)
+	else()
+		set(APCF_LIB_TYPE SHARED)
+	endif()
+	add_library(apcf ${APCF_LIB_TYPE}
 		src/apcf.cpp
 		src/apcf_config.cpp
 		src/apcf_util.cpp
@@ -47,9 +54,9 @@
 	set_target_properties(
 		apcf PROPERTIES
 		VERSION "${PROJECT_VERSION}" )
-
-	set_property(TARGET apcf
-		PROPERTY UNITY_BUILD true )
+		
+	set_property(TARGET apcf PROPERTY UNITY_BUILD true)
+	set_property(TARGET apcf PROPERTY UNITY_BUILD_BATCH_SIZE 32)
 
 
 # Add unit test module

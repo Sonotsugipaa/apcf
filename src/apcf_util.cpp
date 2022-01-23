@@ -20,8 +20,8 @@ namespace apcf_util {
 
 
 	size_t findKeyError(const std::string& str) {
-		if(str.front() == GRAMMAR_KEY_SEPARATOR) {
-		}
+		// if(str.front() == GRAMMAR_KEY_SEPARATOR) {
+		// }
 		size_t pos = 0;
 		for(char prev = GRAMMAR_KEY_SEPARATOR; char c : str) {
 			if(

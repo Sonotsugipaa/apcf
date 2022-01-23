@@ -114,7 +114,7 @@ namespace apcf_num {
 		size_t parsedChars = parseNumberInt(strCursor, strEnd, base, &intPart);
 
 		strCursor += parsedChars;
-		if(*strCursor != '.') {
+		if(strCursor == strEnd || *strCursor != '.') {
 			*dst = apcf::RawData(intPart);
 		} else {
 			apcf::float_t frcPart;
