@@ -434,7 +434,9 @@ namespace apcf_serialize {
 		apcf::io::Writer& dst;
 		apcf::SerializationRules rules;
 		SerializationState& state;
-		bool lastLineWasEntry;
+		bool lastLineWasEntry : 1;
+		bool lastLineWasGroupEnd : 1;
+		bool lastLineWasArrayEnd : 1;
 	};
 
 

@@ -147,6 +147,13 @@ namespace apcf_serialize {
 			const apcf::RawData& entryValue
 	) {
 		using namespace std::string_literals;
+		bool thisLineIsArray = entryValue.type == apcf::DataType::eArray;
+		bool doSpaceArray =
+			thisLineIsArray &&
+			! (
+				(entryValue.data.arrayValue.size() == 0) ||
+				(sd.rules.flags & apcf::SerializationRules::eCompactArrays)
+			);
 		constexpr auto writeValue = [](SerializeData& sd, const apcf::RawData& value) {
 			std::string serializedValue = value.serialize(
 				sd.rules,
@@ -155,6 +162,12 @@ namespace apcf_serialize {
 		};
 		assert(apcf::isKeyValid(key));
 		if(sd.rules.flags & apcf::SerializationRules::ePretty) {
+			if(
+				(sd.lastLineWasGroupEnd || sd.lastLineWasArrayEnd) ||
+				doSpaceArray
+			) {
+				sd.dst.writeChar('\n');
+			}
 			sd.dst.writeChars(sd.state.indentation);
 			sd.dst.writeChars(key);
 			sd.dst.writeChars(" = "s);
@@ -169,6 +182,7 @@ namespace apcf_serialize {
 			writeValue(sd, entryValue);
 		}
 		sd.lastLineWasEntry = true;
+		sd.lastLineWasArrayEnd = doSpaceArray;
 	}
 
 
@@ -177,6 +191,9 @@ namespace apcf_serialize {
 			const apcf::Key& key
 	) {
 		if(sd.rules.flags & apcf::SerializationRules::ePretty) {
+			if(sd.lastLineWasGroupEnd || sd.lastLineWasArrayEnd || sd.lastLineWasEntry) {
+				sd.dst.writeChar('\n');
+			}
 			sd.dst.writeChars(sd.state.indentation);
 			pushIndent(sd.rules, sd.state);
 			sd.dst.writeChars(key);
@@ -191,6 +208,7 @@ namespace apcf_serialize {
 			sd.dst.writeChar(GRAMMAR_GROUP_BEGIN);
 		}
 		sd.lastLineWasEntry = false;
+		sd.lastLineWasArrayEnd = false;
 	}
 
 
@@ -206,6 +224,7 @@ namespace apcf_serialize {
 			sd.dst.writeChar(GRAMMAR_GROUP_END);
 		}
 		sd.lastLineWasEntry = false;
+		sd.lastLineWasArrayEnd = false;
 	}
 
 
@@ -230,6 +249,7 @@ namespace apcf_serialize {
 			const auto& got = state.map->find(key);
 			if(got != state.map->end()) {
 				serializeLineEntry(*state.sd, keyBasename, got->second);
+				state.sd->lastLineWasGroupEnd = false;
 			}
 		}
 
@@ -243,9 +263,11 @@ namespace apcf_serialize {
 					}
 				} else {
 					serializeLineGroupBeg(*state.sd, keyBasename);
+					state.sd->lastLineWasGroupEnd = false;
 					for(const auto& child : parenthood) {
 						serializeHierarchy(state, state.hierarchy->autocomplete(child), key);
 					}
+					state.sd->lastLineWasGroupEnd = true;
 					serializeLineGroupEnd(*state.sd);
 				}
 			}
@@ -305,7 +327,9 @@ namespace apcf {
 			.dst = wr,
 			.rules = sr,
 			.state = state,
-			.lastLineWasEntry = false };
+			.lastLineWasEntry = false,
+			.lastLineWasGroupEnd = false,
+			.lastLineWasArrayEnd = false };
 
 		apcf_serialize::serialize(serializeData, data_);
 
@@ -318,7 +342,9 @@ namespace apcf {
 			.dst = out,
 			.rules = sr,
 			.state = state,
-			.lastLineWasEntry = false };
+			.lastLineWasEntry = false,
+			.lastLineWasGroupEnd = false,
+			.lastLineWasArrayEnd = false };
 		apcf_serialize::serialize(serializeData, data_);
 	}
 
@@ -329,7 +355,9 @@ namespace apcf {
 			.dst = wr,
 			.rules = sr,
 			.state = state,
-			.lastLineWasEntry = false };
+			.lastLineWasEntry = false,
+			.lastLineWasGroupEnd = false,
+			.lastLineWasArrayEnd = false };
 		apcf_serialize::serialize(serializeData, data_);
 	}
 
