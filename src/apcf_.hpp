@@ -445,7 +445,7 @@ namespace apcf_serialize {
 
 	void serializeArray(
 			apcf::SerializationRules rules, SerializationState state,
-			const apcf::RawData::Data::Array& data, std::string& dst
+			const apcf::RawArray& data, std::string& dst
 	);
 
 	std::string serializeDataRecursive(

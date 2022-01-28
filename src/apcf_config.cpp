@@ -82,7 +82,7 @@ namespace apcf {
 	}
 
 
-	std::optional<const RawData*> Config::get(const Key& key) const {
+	std::optional<const RawData*> Config::get(const Key& key) const noexcept {
 		std::optional<const RawData*> r = std::nullopt;
 		auto found = data_.find(key.asString());
 		if(found != data_.end()) r = &found->second;
@@ -168,12 +168,12 @@ namespace apcf {
 					return std::to_string(data.floatValue);
 				}
 				case DataType::eString: {
-					return std::string(data.stringValue.ptr, data.stringValue.size);
+					return string_t(data.stringValue);
 				}
 				case DataType::eArray: {
 					concat = GRAMMAR_ARRAY_BEGIN + " "s;
-					for(size_t i=0; i < data.arrayValue.size; ++i) {
-						concat.append(data.arrayValue.ptr[i].serialize());
+					for(size_t i=0; i < data.arrayValue.size(); ++i) {
+						concat.append(data.arrayValue[i].serialize());
 						concat.push_back(' ');
 					}
 					concat.push_back(GRAMMAR_ARRAY_END);
@@ -185,7 +185,7 @@ namespace apcf {
 						INVALID_VALUE_STR(found.value()->type) + " \""s + key.asString() + "\" as a string");
 				}
 			}
-			return std::string(data.stringValue.ptr, data.stringValue.size);
+			return std::string(data.stringValue);
 		} else {
 			return std::nullopt;
 		}
@@ -200,7 +200,7 @@ namespace apcf {
 			switch(found.value()->type) {
 				case DataType::eArray: {
 					const auto& data = found.value()->data;
-					r = array_span_t(data.arrayValue.ptr, data.arrayValue.size);
+					r = array_span_t(data.arrayValue.data(), data.arrayValue.size());
 					return r;
 				}
 				default: {
@@ -215,27 +215,27 @@ namespace apcf {
 	}
 
 
-	void Config::set(const Key& key, RawData data) {
+	void Config::set(const Key& key, RawData data) noexcept {
 		data_[key] = std::move(data);
 	}
 
-	void Config::setBool(const Key& key, bool value) {
+	void Config::setBool(const Key& key, bool value) noexcept {
 		data_[key] = RawData(value);
 	}
 
-	void Config::setInt(const Key& key, int_t value) {
+	void Config::setInt(const Key& key, int_t value) noexcept {
 		data_[key] = RawData(value);
 	}
 
-	void Config::setFloat(const Key& key, float_t value) {
+	void Config::setFloat(const Key& key, float_t value) noexcept {
 		data_[key] = RawData(value);
 	}
 
-	void Config::setString(const Key& key, string_t value) {
+	void Config::setString(const Key& key, string_t value) noexcept {
 		data_[key] = RawData(value);
 	}
 
-	void Config::setArray(const Key& key, array_t array) {
+	void Config::setArray(const Key& key, array_t array) noexcept {
 		data_[key] = RawData::moveArray(array.data(), array.size());
 	}
 

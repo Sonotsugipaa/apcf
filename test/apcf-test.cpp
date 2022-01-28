@@ -120,7 +120,7 @@ namespace {
 		return
 			(0 == strncmp(
 				testString.data(),
-				found.value()->data.stringValue.ptr,
+				found.value()->data.stringValue.data(),
 				testString.size()
 			))? eSuccess : eFailure;
 	}
@@ -136,7 +136,7 @@ namespace {
 		return
 			(0 == strncmp(
 				testString.data(),
-				found.value()->data.stringValue.ptr,
+				found.value()->data.stringValue.data(),
 				testString.size()
 			))? eSuccess : eFailure;
 	}

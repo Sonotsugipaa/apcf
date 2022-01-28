@@ -54,7 +54,7 @@ namespace {
 		static_assert(base == sizeof(digits)-1);
 		apcf::RawData r = apcf::RawData::allocString(length);
 		for(unsigned i=0; i < length; ++i) {
-			r.data.stringValue.ptr[i] = digits[rng() % base];
+			r.data.stringValue[i] = digits[rng() % base];
 		}
 		return r;
 	}

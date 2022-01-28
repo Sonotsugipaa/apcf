@@ -45,27 +45,27 @@ namespace apcf_serialize {
 
 	void serializeArray(
 			apcf::SerializationRules rules, SerializationState state,
-			const apcf::RawData::Data::Array& data, std::string& dst
+			const apcf::RawArray& data, std::string& dst
 	) {
 		using Rules = apcf::SerializationRules;
 		dst.push_back(GRAMMAR_ARRAY_BEGIN);
 		if(rules.flags & Rules::ePretty) {
 			if(rules.flags & Rules::eCompactArrays) {
 				dst.push_back(' ');
-				if(data.size > 0) {
-					dst.append(data.ptr->serialize(rules, state.indentationLevel)); }
-				for(size_t i=1; i < data.size; ++i) {
+				if(data.size() > 0) {
+					dst.append(data.data()->serialize(rules, state.indentationLevel)); }
+				for(size_t i=1; i < data.size(); ++i) {
 					dst.push_back(' ');
-					dst.append(data.ptr[i].serialize(rules, state.indentationLevel));
+					dst.append(data[i].serialize(rules, state.indentationLevel));
 				}
 				dst.push_back(' ');
 			} else {
-				if(data.size) {
+				if(data.size()) {
 					pushIndent(rules, state);
-					for(size_t i=0; i < data.size; ++i) {
+					for(size_t i=0; i < data.size(); ++i) {
 						dst.push_back(GRAMMAR_NEWLINE);
 						dst.append(state.indentation);
-						dst.append(data.ptr[i].serialize(rules, state.indentationLevel));
+						dst.append(data[i].serialize(rules, state.indentationLevel));
 					}
 					popIndent(rules, state);
 					dst.push_back(GRAMMAR_NEWLINE);
@@ -75,11 +75,11 @@ namespace apcf_serialize {
 				}
 			}
 		} else {
-			if(data.size > 0) {
-				dst.append(data.ptr->serialize(rules, state.indentationLevel)); }
-			for(size_t i=1; i < data.size; ++i) {
+			if(data.size() > 0) {
+				dst.append(data.data()->serialize(rules, state.indentationLevel)); }
+			for(size_t i=1; i < data.size(); ++i) {
 				dst.push_back(' ');
-				dst.append(data.ptr[i].serialize(rules, state.indentationLevel));
+				dst.append(data[i].serialize(rules, state.indentationLevel));
 			}
 		}
 		dst.push_back(GRAMMAR_ARRAY_END);
@@ -122,11 +122,11 @@ namespace apcf_serialize {
 			} break;
 			case DataType::eString: {
 				r.reserve(
-					+ rawData.data.stringValue.size /* The size of the string itself */
+					+ rawData.data.stringValue.length() /* The length of the string itself */
 					+ 4 /* Four literal double-quote characters */ );
 				r = GRAMMAR_STRING_DELIM;
-				auto end = rawData.data.stringValue.ptr + rawData.data.stringValue.size;
-				for(auto iter = rawData.data.stringValue.ptr; iter < end; ++iter) {
+				auto end = rawData.data.stringValue.data() + rawData.data.stringValue.length();
+				for(auto iter = rawData.data.stringValue.data(); iter < end; ++iter) {
 					char put = *iter;
 					if(put == GRAMMAR_STRING_DELIM) r.push_back(GRAMMAR_STRING_ESCAPE);
 					r.push_back(put);

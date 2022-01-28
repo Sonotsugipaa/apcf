@@ -155,23 +155,56 @@ namespace apcf {
 	};
 
 
+	struct RawData;
+
+	class RawString {
+		private:
+			friend RawData;
+
+			size_t length_;
+			char* ptr_;
+
+			RawString(char*, size_t);
+
+		public:
+			RawString() = default;
+
+			size_t length() const { return length_; }
+
+			operator string_t() const { return std::string(ptr_, length_); }
+
+			inline       char& operator[](size_t index);
+			inline const char& operator[](size_t index) const;
+			inline       char* data();
+			inline const char* data() const;
+	};
+
+	class RawArray {
+		private:
+			friend RawData;
+
+			size_t size_;
+			RawData* ptr_;
+
+			RawArray(RawData*, size_t);
+
+		public:
+			RawArray() = default;
+
+			size_t size() const { return size_; }
+
+			inline       RawData& operator[](size_t index);
+			inline const RawData& operator[](size_t index) const;
+			inline       RawData* data();
+			inline const RawData* data() const;
+	};
+
+
 	struct RawData {
 		DataType type;
 		union Data {
-			struct String {
-				size_t size;
-				char* ptr;
-
-				char& operator[](size_t index) { return ptr[index]; }
-				const char& operator[](size_t index) const { return ptr[index]; }
-			} stringValue;
-			struct Array {
-				size_t size;
-				RawData* ptr;
-
-				RawData& operator[](size_t index) { return ptr[index]; }
-				const RawData& operator[](size_t index) const { return ptr[index]; }
-			} arrayValue;
+			RawString stringValue;
+			RawArray arrayValue;
 			float_t floatValue;
 			int_t intValue;
 			bool boolValue;
@@ -192,6 +225,9 @@ namespace apcf {
 		static RawData copyArray(const RawData* valuesPtr, size_t n);
 		static RawData moveArray(RawData* valuesPtr, size_t n);
 
+		static RawData copyString(const char* valuesPtr, size_t n);
+		static RawData moveString(char* valuesPtr, size_t n);
+
 		RawData(const RawData&);  RawData& operator=(const RawData&);
 		RawData(RawData&&);  RawData& operator=(RawData&&);
 
@@ -202,6 +238,17 @@ namespace apcf {
 
 		std::string serialize(SerializationRules = { }, unsigned indentation = 0) const;
 	};
+
+
+	inline char& RawString::operator[](size_t index) { return ptr_[index]; }
+	inline const char& RawString::operator[](size_t index) const { return ptr_[index]; }
+	inline char* RawString::data() { return ptr_; }
+	inline const char* RawString::data() const { return ptr_; }
+
+	inline RawData& RawArray::operator[](size_t index) { return ptr_[index]; }
+	inline const RawData& RawArray::operator[](size_t index) const { return ptr_[index]; }
+	inline RawData* RawArray::data() { return ptr_; }
+	inline const RawData* RawArray::data() const { return ptr_; }
 
 
 	using array_t = std::vector<RawData>;
@@ -244,19 +291,19 @@ namespace apcf {
 		 * that depends on the relationships between keys. */
 		ConfigHierarchy getHierarchy() const;
 
-		std::optional<const RawData*> get(const Key&) const;
+		std::optional<const RawData*> get(const Key&) const noexcept;
 		std::optional<bool>           getBool(const Key&) const;
 		std::optional<int_t>          getInt(const Key&) const;
 		std::optional<float_t>        getFloat(const Key&) const;
 		std::optional<string_t>       getString(const Key&) const;
 		std::optional<array_span_t>   getArray(const Key&) const;
 
-		void set      (const Key&, RawData);
-		void setBool  (const Key&, bool value);
-		void setInt   (const Key&, int_t value);
-		void setFloat (const Key&, float_t value);
-		void setString(const Key&, string_t value);
-		void setArray (const Key&, array_t value);
+		void set      (const Key&, RawData) noexcept;
+		void setBool  (const Key&, bool value) noexcept;
+		void setInt   (const Key&, int_t value) noexcept;
+		void setFloat (const Key&, float_t value) noexcept;
+		void setString(const Key&, string_t value) noexcept;
+		void setArray (const Key&, array_t value) noexcept;
 	};
 
 

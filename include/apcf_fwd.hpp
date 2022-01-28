@@ -13,6 +13,8 @@ namespace apcf {
 	class KeySpan;
 
 	struct SerializationRules;
+	class RawString;
+	class RawArray;
 	struct RawData;
 
 	class Config;

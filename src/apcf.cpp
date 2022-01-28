@@ -79,6 +79,11 @@ namespace apcf {
 
 
 	Key::Key(std::string str) {
+		#ifndef NDEBUG
+			/* Cargo-cult assertion to make sure that a empty string constructs an
+			 * empty key, since constructor delegation isn't an option. */
+			assert((! str.empty()) || Key() == str);
+		#endif
 		{
 			size_t err = apcf_util::findKeyError(str);
 			if(err < str.size()) throw InvalidKey(str, err);
@@ -205,42 +210,42 @@ namespace apcf {
 	RawData::RawData(const char* cStr):
 			type(DataType::eString)
 	{
-		data.stringValue.size = std::strlen(cStr);
-		data.stringValue.ptr = (char*) ::operator new[](data.stringValue.size);
-		std::strncpy(data.stringValue.ptr, cStr, data.stringValue.size);
+		data.stringValue.length_ = std::strlen(cStr);
+		data.stringValue.ptr_ = (char*) ::operator new[](data.stringValue.length_);
+		std::strncpy(data.stringValue.ptr_, cStr, data.stringValue.length_);
 	}
 
 	RawData::RawData(const std::string& str):
 			type(DataType::eString)
 	{
-		data.stringValue.size = str.size();
-		data.stringValue.ptr = (char*) ::operator new[](data.stringValue.size);
-		std::strncpy(data.stringValue.ptr, str.data(), data.stringValue.size);
+		data.stringValue.length_ = str.size();
+		data.stringValue.ptr_ = (char*) ::operator new[](data.stringValue.length_);
+		std::strncpy(data.stringValue.ptr_, str.data(), data.stringValue.length_);
 	}
 
 	RawData RawData::allocString(size_t len) {
 		RawData r;
 		r.type = DataType::eString;
-		r.data.stringValue.size = len;
-		r.data.stringValue.ptr = new char[len];
+		r.data.stringValue.length_ = len;
+		r.data.stringValue.ptr_ = new char[len];
 		return r;
 	}
 
 	RawData RawData::allocArray(size_t len) {
 		RawData r;
 		r.type = DataType::eArray;
-		r.data.arrayValue.size = len;
-		r.data.arrayValue.ptr = new RawData[len];
+		r.data.arrayValue.size_ = len;
+		r.data.arrayValue.ptr_ = new RawData[len];
 		return r;
 	}
 
 	RawData RawData::copyArray(const RawData* cpPtr, size_t size) {
 		RawData r;
 		r.type = DataType::eArray;
-		r.data.arrayValue.size = size;
-		r.data.arrayValue.ptr = new RawData[size];
+		r.data.arrayValue.size_ = size;
+		r.data.arrayValue.ptr_ = new RawData[size];
 		for(size_t i=0; i < size; ++i) {
-			r.data.arrayValue.ptr[i] = cpPtr[i];
+			r.data.arrayValue.ptr_[i] = cpPtr[i];
 		}
 		return r;
 	}
@@ -248,11 +253,30 @@ namespace apcf {
 	RawData RawData::moveArray(RawData* mvPtr, size_t size) {
 		RawData r;
 		r.type = DataType::eArray;
-		r.data.arrayValue.size = size;
-		r.data.arrayValue.ptr = new RawData[size];
+		r.data.arrayValue.size_ = size;
+		r.data.arrayValue.ptr_ = new RawData[size];
 		for(size_t i=0; i < size; ++i) {
-			r.data.arrayValue.ptr[i] = std::move(mvPtr[i]);
+			r.data.arrayValue.ptr_[i] = std::move(mvPtr[i]);
 		}
+		return r;
+	}
+
+	RawData RawData::copyString(const char* cpPtr, size_t length) {
+		RawData r;
+		r.type = DataType::eString;
+		r.data.stringValue.length_ = length;
+		r.data.stringValue.ptr_ = new char[length];
+		for(size_t i=0; i < length; ++i) {
+			r.data.stringValue.ptr_[i] = cpPtr[i];
+		}
+		return r;
+	}
+
+	RawData RawData::moveString(char* mvPtr, size_t length) {
+		RawData r;
+		r.type = DataType::eString;
+		r.data.stringValue.length_ = length;
+		r.data.stringValue.ptr_ = std::move(mvPtr);
 		return r;
 	}
 
@@ -262,14 +286,14 @@ namespace apcf {
 			data(cp.data)
 	{
 		if(type == DataType::eString) {
-			data.stringValue.ptr = (char*) ::operator new[](data.stringValue.size);
-			std::strncpy(data.stringValue.ptr, cp.data.stringValue.ptr, data.stringValue.size);
+			data.stringValue.ptr_ = (char*) ::operator new[](data.stringValue.length_);
+			std::strncpy(data.stringValue.ptr_, cp.data.stringValue.ptr_, data.stringValue.length_);
 		}
 		else
 		if(type == DataType::eArray) {
-			data.arrayValue.ptr = new RawData[data.arrayValue.size];
-			for(size_t i=0; i < data.arrayValue.size; ++i) {
-				data.arrayValue.ptr[i] = cp.data.arrayValue.ptr[i];
+			data.arrayValue.ptr_ = new RawData[data.arrayValue.size_];
+			for(size_t i=0; i < data.arrayValue.size_; ++i) {
+				data.arrayValue.ptr_[i] = cp.data.arrayValue.ptr_[i];
 			}
 		}
 	}
@@ -290,7 +314,7 @@ namespace apcf {
 				mv.type == DataType::eString ||
 				mv.type == DataType::eArray
 			) {
-				mv.data.arrayValue.ptr = nullptr;
+				mv.data.arrayValue.ptr_ = nullptr;
 			}
 		#endif
 	}
@@ -303,16 +327,16 @@ namespace apcf {
 
 	RawData::~RawData() {
 		if(type == DataType::eString) {
-			assert(data.stringValue.ptr != nullptr);
-			delete[] data.stringValue.ptr;
+			assert(data.stringValue.ptr_ != nullptr);
+			delete[] data.stringValue.ptr_;
 			#ifndef NDEBUG
-				data.stringValue.ptr = nullptr;
+				data.stringValue.ptr_ = nullptr;
 			#endif
 		} if(type == DataType::eArray) {
-			assert(data.arrayValue.ptr != nullptr);
-			delete[] data.arrayValue.ptr;
+			assert(data.arrayValue.ptr_ != nullptr);
+			delete[] data.arrayValue.ptr_;
 			#ifndef NDEBUG
-				data.arrayValue.ptr = nullptr;
+				data.arrayValue.ptr_ = nullptr;
 			#endif
 		}
 	}
