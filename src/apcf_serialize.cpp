@@ -5,6 +5,35 @@
 
 
 
+namespace {
+
+	void sortEntries(
+			const apcf::ConfigHierarchy& hierarchy,
+			const std::map<apcf::Key, apcf::RawData>& map,
+			const std::set<apcf::Key>& parenthood,
+			std::set<apcf::Key>& groupsDst,
+			std::set<apcf::Key>& arraysDst,
+			std::set<apcf::Key>& singleEntriesDst
+	) {
+		for(const auto& childKey : parenthood) {
+			auto autocompKey = hierarchy.autocomplete(childKey);
+			auto child = map.find(autocompKey);
+			if(child == map.end()) {
+				groupsDst.insert(autocompKey);
+			} else {
+				switch(child->second.type) {
+					case apcf::DataType::eArray: arraysDst.insert(autocompKey); break;
+					default: singleEntriesDst.insert(autocompKey); break;
+				}
+			}
+		}
+		assert(parenthood.empty() == (groupsDst.empty() && arraysDst.empty() && singleEntriesDst.empty()));
+	}
+
+}
+
+
+
 namespace apcf_serialize {
 
 	using namespace apcf_util;
@@ -163,7 +192,9 @@ namespace apcf_serialize {
 		assert(apcf::isKeyValid(key));
 		if(sd.rules.flags & apcf::SerializationRules::ePretty) {
 			if(
-				(sd.lastLineWasGroupEnd || sd.lastLineWasArrayEnd) ||
+				getFlags<uint_fast8_t>(sd.lastLineFlags,
+					lineFlagsArrayEndBit | lineFlagsGroupEndBit | lineFlagsGroupEntryBit
+				) ||
 				doSpaceArray
 			) {
 				sd.dst.writeChar('\n');
@@ -174,15 +205,17 @@ namespace apcf_serialize {
 			writeValue(sd, entryValue);
 			sd.dst.writeChar('\n');
 		} else {
-			if(sd.lastLineWasEntry) {
+			if(getFlags<uint_fast8_t>(sd.lastLineFlags, lineFlagsOwnEntryBit)) {
 				sd.dst.writeChar(' ');
 			}
 			sd.dst.writeChars(key);
 			sd.dst.writeChar('=');
 			writeValue(sd, entryValue);
 		}
-		sd.lastLineWasEntry = true;
-		sd.lastLineWasArrayEnd = doSpaceArray;
+		sd.lastLineFlags = setFlags<uint_fast8_t>(sd.lastLineFlags, false, lineFlagsGroupEndBit);
+		// sd.lastLineFlags = setFlags<uint_fast8_t>(sd.lastLineFlags, false, lineFlagsGroupEntryBit); // Do NOT reset this bit, its meaning is tied to the next line (and will be reset then)
+		sd.lastLineFlags = setFlags<uint_fast8_t>(sd.lastLineFlags, true, lineFlagsOwnEntryBit);
+		sd.lastLineFlags = setFlags<uint_fast8_t>(sd.lastLineFlags, doSpaceArray, lineFlagsArrayEndBit);
 	}
 
 
@@ -191,7 +224,12 @@ namespace apcf_serialize {
 			const apcf::Key& key
 	) {
 		if(sd.rules.flags & apcf::SerializationRules::ePretty) {
-			if(sd.lastLineWasGroupEnd || sd.lastLineWasArrayEnd || sd.lastLineWasEntry) {
+			if(
+				getFlags<uint_fast8_t>(sd.lastLineFlags,
+					lineFlagsGroupEndBit | lineFlagsArrayEndBit | lineFlagsOwnEntryBit
+				) &&
+				! getFlags<uint_fast8_t>(sd.lastLineFlags, lineFlagsOwnEntryBit)
+			) {
 				sd.dst.writeChar('\n');
 			}
 			sd.dst.writeChars(sd.state.indentation);
@@ -201,14 +239,15 @@ namespace apcf_serialize {
 			sd.dst.writeChar(GRAMMAR_GROUP_BEGIN);
 			sd.dst.writeChar('\n');
 		} else {
-			if(sd.lastLineWasEntry) {
+			if(getFlags<uint_fast8_t>(sd.lastLineFlags, lineFlagsOwnEntryBit)) {
 				sd.dst.writeChar(' ');
 			}
 			sd.dst.writeChars(key);
 			sd.dst.writeChar(GRAMMAR_GROUP_BEGIN);
 		}
-		sd.lastLineWasEntry = false;
-		sd.lastLineWasArrayEnd = false;
+		sd.lastLineFlags = setFlags<uint_fast8_t>(sd.lastLineFlags, false,
+			lineFlagsGroupEndBit | lineFlagsArrayEndBit |
+			lineFlagsOwnEntryBit | lineFlagsGroupEntryBit );
 	}
 
 
@@ -223,8 +262,9 @@ namespace apcf_serialize {
 		} else {
 			sd.dst.writeChar(GRAMMAR_GROUP_END);
 		}
-		sd.lastLineWasEntry = false;
-		sd.lastLineWasArrayEnd = false;
+		sd.lastLineFlags = setFlags<uint_fast8_t>(sd.lastLineFlags, true, lineFlagsGroupEndBit);
+		sd.lastLineFlags = setFlags<uint_fast8_t>(sd.lastLineFlags, false,
+			lineFlagsArrayEndBit | lineFlagsOwnEntryBit | lineFlagsGroupEntryBit );
 	}
 
 
@@ -235,6 +275,8 @@ namespace apcf_serialize {
 		// Calculate the basename of `key` by using the known parent size
 		Key keyBasename;
 		KeySpan keyBasenameSpan;
+		bool keyIsRoot = key.empty();
+		const auto& parenthood = state.hierarchy->getSubkeys(key);
 		{
 			size_t parentOffset = 0;
 			if(! parent.empty()) parentOffset = parent.size() + 1;
@@ -244,31 +286,48 @@ namespace apcf_serialize {
 			keyBasename = Key(keyBasenameSpan);
 		}
 
-		// Serialize entry, if one exists
-		if(! key.empty()) {
+		if(! keyIsRoot) {
+			// Serialize entry, if one exists
 			const auto& got = state.map->find(key);
 			if(got != state.map->end()) {
+				state.sd->lastLineFlags = setFlags<uint_fast8_t>(state.sd->lastLineFlags, ! parenthood.empty(), lineFlagsGroupEntryBit);
 				serializeLineEntry(*state.sd, keyBasename, got->second);
-				state.sd->lastLineWasGroupEnd = false;
 			}
+		} else {
+			assert(false); // See comment on next `assert(false)`
 		}
 
 		// Serialize group, if one exists
 		{
-			const auto& parenthood = state.hierarchy->getSubkeys(Key(key));
 			if(! parenthood.empty()) {
-				if(key.empty()) {
+				if(keyIsRoot) {
+					assert(false); // This branch makes no sense, but I may have had a reason for writing this...? An empty key isn't allowed to be in a hierarchy, not anymore.
 					for(const auto& child : parenthood) {
 						serializeHierarchy(state, state.hierarchy->autocomplete(child), key);
 					}
 				} else {
-					serializeLineGroupBeg(*state.sd, keyBasename);
-					state.sd->lastLineWasGroupEnd = false;
-					for(const auto& child : parenthood) {
-						serializeHierarchy(state, state.hierarchy->autocomplete(child), key);
+					#define SERIALIZE_(SET_) { for(const auto& childKey : SET_) serializeHierarchy(state, childKey, std::move(key)); }
+					if(state.sd->rules.flags & apcf::SerializationRules::ePretty) {
+						std::set<Key> groups;
+						std::set<Key> arrays;
+						std::set<Key> singleEntries;
+						sortEntries(
+							*state.hierarchy, *state.map, parenthood,
+							groups, arrays, singleEntries );
+
+						serializeLineGroupBeg(*state.sd, keyBasename);
+						SERIALIZE_(groups)
+						SERIALIZE_(arrays)
+						SERIALIZE_(singleEntries)
+						serializeLineGroupEnd(*state.sd);
+					} else {
+						serializeLineGroupBeg(*state.sd, keyBasename);
+						for(const auto& childKey : parenthood) {
+							serializeHierarchy(state, state.hierarchy->autocomplete(childKey), std::move(key));
+						}
+						serializeLineGroupEnd(*state.sd);
 					}
-					state.sd->lastLineWasGroupEnd = true;
-					serializeLineGroupEnd(*state.sd);
+					#undef SERIALIZE_
 				}
 			}
 		}
@@ -284,19 +343,36 @@ namespace apcf_serialize {
 		} else {
 			apcf::ConfigHierarchy hierarchy;
 			const apcf::ConfigHierarchy* hierarchyPtr;
+
 			if(sd.rules.hierarchy == nullptr) {
 				hierarchy = apcf::ConfigHierarchy(map);
 				hierarchyPtr = &hierarchy;
 			} else {
 				hierarchyPtr = sd.rules.hierarchy;
 			}
+
 			SerializeHierarchyParams saParams = {
 				.sd = &sd,
 				.map = &map,
 				.hierarchy = hierarchyPtr };
-			for(const auto& rootChild : hierarchyPtr->getSubkeys({ })) {
-				serializeHierarchy(saParams, hierarchyPtr->autocomplete(rootChild), { });
+
+			const std::set<Key>& subkeys = hierarchyPtr->getSubkeys({ });
+
+			#define SERIALIZE_(SET_) { for(const auto& rootChild : SET_) serializeHierarchy(saParams, rootChild, { }); }
+			if(sd.rules.flags & Rules::ePretty) {
+				std::set<Key> groups;
+				std::set<Key> arrays;
+				std::set<Key> singleEntries;
+				sortEntries(*hierarchyPtr, map, subkeys, groups, arrays, singleEntries);
+				SERIALIZE_(groups)
+				SERIALIZE_(arrays)
+				SERIALIZE_(singleEntries)
+			} else {
+				for(const auto& rootChild : subkeys) {
+					serializeHierarchy(saParams, hierarchyPtr->autocomplete(rootChild), { });
+				}
 			}
+			#undef SERIALIZE_
 		}
 	}
 
@@ -327,9 +403,7 @@ namespace apcf {
 			.dst = wr,
 			.rules = sr,
 			.state = state,
-			.lastLineWasEntry = false,
-			.lastLineWasGroupEnd = false,
-			.lastLineWasArrayEnd = false };
+			.lastLineFlags = 0 };
 
 		apcf_serialize::serialize(serializeData, data_);
 
@@ -342,9 +416,7 @@ namespace apcf {
 			.dst = out,
 			.rules = sr,
 			.state = state,
-			.lastLineWasEntry = false,
-			.lastLineWasGroupEnd = false,
-			.lastLineWasArrayEnd = false };
+			.lastLineFlags = 0 };
 		apcf_serialize::serialize(serializeData, data_);
 	}
 
@@ -355,9 +427,7 @@ namespace apcf {
 			.dst = wr,
 			.rules = sr,
 			.state = state,
-			.lastLineWasEntry = false,
-			.lastLineWasGroupEnd = false,
-			.lastLineWasArrayEnd = false };
+			.lastLineFlags = 0 };
 		apcf_serialize::serialize(serializeData, data_);
 	}
 

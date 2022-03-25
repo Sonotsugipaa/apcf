@@ -179,6 +179,21 @@ namespace apcf_util {
 		return r;
 	};
 
+
+	template<typename T>
+	constexpr T setFlags(T src, bool value, T bits) {
+		if(value) {
+			return src | bits;
+		} else {
+			return src & (~bits);
+		}
+	}
+
+	template<typename T>
+	constexpr bool getFlags(T src, T bits) {
+		return (src & bits) != 0;
+	}
+
 }
 
 
@@ -346,6 +361,15 @@ namespace apcf_parse {
 
 namespace apcf_serialize {
 
+	enum LineFlags : uint_fast8_t {
+		lineFlagsGroupEndBit   = 1,
+		lineFlagsArrayEndBit   = 2,
+		lineFlagsOwnEntryBit   = 4,
+		lineFlagsGroupEntryBit = 8
+	};
+	using LineFlagBits = uint_fast8_t;
+
+
 	class StringWriter : public apcf::io::Writer {
 	public:
 		std::string* dst;
@@ -434,9 +458,7 @@ namespace apcf_serialize {
 		apcf::io::Writer& dst;
 		apcf::SerializationRules rules;
 		SerializationState& state;
-		bool lastLineWasEntry : 1;
-		bool lastLineWasGroupEnd : 1;
-		bool lastLineWasArrayEnd : 1;
+		LineFlagBits lastLineFlags;
 	};
 
 

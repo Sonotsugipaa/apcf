@@ -391,4 +391,10 @@ namespace apcf {
 		size_t atLineChar() const noexcept { return lineChar_; }
 	};
 
+
+	class ConfigSerializationError : public ConfigError {
+	protected:
+		using ConfigError::ConfigError;
+	};
+
 }
