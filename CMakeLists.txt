@@ -34,7 +34,7 @@
 
 
 # Setup targets
-		
+
 	# Windows needs a lot of fluff in order to create a DLL, and I'm not going to copy paste base64-like macros everywhere if I'm targeting Linux.
 	# Solution: Windows uses a static build, while Linux (and other unsupported environments) use shared builds.
 	# Windows is already bloated all the way down to hell, anyway.
@@ -46,6 +46,7 @@
 	add_library(apcf ${APCF_LIB_TYPE}
 		src/apcf.cpp
 		src/apcf_config.cpp
+		src/apcf_hierarchy.cpp
 		src/apcf_util.cpp
 		src/apcf_num.cpp
 		src/apcf_parse.cpp
@@ -54,9 +55,9 @@
 	set_target_properties(
 		apcf PROPERTIES
 		VERSION "${PROJECT_VERSION}" )
-		
+
 	set_property(TARGET apcf PROPERTY UNITY_BUILD true)
-	set_property(TARGET apcf PROPERTY UNITY_BUILD_BATCH_SIZE 32)
+	set_property(TARGET apcf PROPERTY UNITY_BUILD_BATCH_SIZE 32) # Way more time is spent compiling STL templates than actually using them
 
 
 # Add unit test module

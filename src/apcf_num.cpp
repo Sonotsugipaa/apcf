@@ -177,7 +177,6 @@ namespace apcf_num {
 			r.push_back(digitToChar(nInt));
 			n -= nInt;
 		} while(n > 0);
-		// if(nInt != 0) r.push_back(digitToChar(nInt));
 		return r;
 	}
 
