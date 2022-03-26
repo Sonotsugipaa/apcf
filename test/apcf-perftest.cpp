@@ -128,7 +128,7 @@ namespace {
 		cfgRd = Config::read(std::ifstream(cfgFilePath));
 		auto endTime = (nowUs() - begTime);
 		out
-			<< "Parsing " << cfgRd.keyCount()
+			<< "Parsing " << cfgRd.entryCount()
 			<< " entries took " << endTime << "us" << std::endl;
 		for(const auto& wrEntry : cfgWr) {
 			apcf::SerializationRules rules = { };  rules.flags = apcf::SerializationRules::eCompactArrays;
@@ -163,7 +163,7 @@ namespace {
 		cfgWr.write(std::ofstream(cfgFilePath), rules);
 		auto endTime = (nowUs() - begTime);
 		out
-			<< "Serializing " << cfgWr.keyCount()
+			<< "Serializing " << cfgWr.entryCount()
 			<< " entries took " << endTime << "us" << std::endl;
 		return eNeutral;
 	}

@@ -560,10 +560,10 @@ namespace {
 		using namespace std::string_literals;
 		Config cfgCmp = Config::parse(genericConfigSrc);
 		Config cfgFile = Config::read(std::ifstream(tmpFileBase + ".test_generic.cfg"s));
-		if(cfgCmp.keyCount() != cfgFile.keyCount()) {
+		if(cfgCmp.entryCount() != cfgFile.entryCount()) {
 			out
-				<< "Key number mismatch: read " << cfgFile.keyCount()
-				<< ", expected " << cfgCmp.keyCount() << std::endl;
+				<< "Key number mismatch: read " << cfgFile.entryCount()
+				<< ", expected " << cfgCmp.entryCount() << std::endl;
 			return eFailure;
 		}
 		for(auto& cmpEntry : cfgCmp) {
@@ -582,6 +582,84 @@ namespace {
 			}
 		}
 		return eSuccess;
+	}
+
+
+	utest::ResultType testSubconfigNoMatch(std::ostream&) {
+		Config cfg = Config::parse("group{subgroup{1=2 3=4}5=6}rootval=7");
+		Config subCfg = cfg.getSubconfig("grou" /* the last letter is intentionally omitted */);
+		return subCfg.entryCount() == 0? eSuccess : eFailure;
+	}
+
+
+	utest::ResultType testSubconfig(std::ostream& out) {
+		Config cfg = Config::parse("group{subgroup{1=2 3=4}5=6}rootval=7");
+		Config subCfg = cfg.getSubconfig("group");
+		auto checkValue = [&](const apcf::Key& key, apcf::int_t expect) {
+			auto got = subCfg.getInt(key);
+			if(! got.has_value()) {
+				out
+					<< "Expected entry `" << key << '='
+					<< std::to_string(expect) << "`, found none" << std::endl;
+				return false;
+			}
+			if(got.value() != expect) {
+				out
+					<< "Expected entry `" << key << '=' << std::to_string(expect)
+					<< "`, found value " << std::to_string(got.value()) << std::endl;
+				return false;
+			}
+			return true;
+		};
+		return
+			bool(
+				checkValue("subgroup.1", 2) &
+				checkValue("subgroup.3", 4) &
+				checkValue("5", 6)
+			)? eSuccess : eFailure;
+	}
+
+
+	template<bool existing>
+	utest::ResultType testMergeAsGroup(std::ostream& out) {
+		Config cfg = Config::parse("group1.1=11 group1.2=12");
+		if constexpr(existing) {
+			cfg.mergeAsGroup("group2", Config::parse("3=23 4=24"));
+		} else {
+			cfg.mergeAsGroup("group1", Config::parse("3=13 4=14"));
+		}
+		constexpr auto checkValue = [](
+				const Config& cfg, std::ostream& out,
+				const apcf::Key& key, apcf::int_t expect
+		) {
+			auto got = cfg.getInt(key);
+			if(! got.has_value()) {
+				out
+					<< "Expected entry `" << key << '='
+					<< std::to_string(expect) << "`, found none" << std::endl;
+				return false;
+			}
+			if(got.value() != expect) {
+				out
+					<< "Expected entry `" << key << '=' << std::to_string(expect)
+					<< "`, found value " << std::to_string(got.value()) << std::endl;
+				return false;
+			}
+			return true;
+		};
+		if constexpr(existing) {
+			return
+				bool(
+					checkValue(cfg, out, "group2.3", 23) &
+					checkValue(cfg, out, "group2.4", 24)
+				)? eSuccess : eFailure;
+		} else {
+			return
+				bool(
+					checkValue(cfg, out, "group1.3", 13) &
+					checkValue(cfg, out, "group1.4", 14)
+				)? eSuccess : eFailure;
+		}
 	}
 
 }
@@ -603,6 +681,10 @@ int main(int, char**) {
 		.RUN_("Config merge (copy)", testMerge<false>)
 		.RUN_("Config merge (move)", testMerge<true>)
 		.RUN_("Get subkeys", testGetSubkeys)
+		.RUN_("Subconfig (no match)", testSubconfigNoMatch)
+		.RUN_("Subconfig", testSubconfig)
+		.RUN_("Merge as group", testMergeAsGroup<false>)
+		.RUN_("Merge as group (existing)", testMergeAsGroup<true>)
 		.RUN_("[parse] Single line comment, then EOL", testReadOnelineCommentEol)
 		.RUN_("[parse] Single line comment, then EOF", testReadOnelineCommentEof)
 		.RUN_("[parse] Single line empty comment", testReadOnelineCommentEmpty)

@@ -12,6 +12,18 @@
 
 
 
+namespace {
+
+	bool cmpKeyPrefix(const apcf::Key& prefix, const apcf::Key& cmp) {
+		if(cmp.size() < prefix.size() + 1) return false;
+		if(0 != ::strncmp(prefix.data(), cmp.data(), prefix.size())) return false;
+		return cmp[prefix.size()] == '.';
+	}
+
+}
+
+
+
 namespace apcf {
 
 	void Config::merge(const Config& r) {
@@ -27,6 +39,19 @@ namespace apcf {
 	}
 
 
+	void Config::mergeAsGroup(const Key& groupKey, const Config& cfg) {
+		for(const auto& entry : cfg) {
+			set(groupKey + '.' + entry.first, entry.second);
+		}
+	}
+
+	void Config::mergeAsGroup(const Key& groupKey, Config&& cfg) {
+		for(const auto& entry : cfg) {
+			set(groupKey + '.' + std::move(entry.first), std::move(entry.second));
+		}
+	}
+
+
 	decltype(Config::data_)::const_iterator Config::begin() const {
 		return data_.begin();
 	}
@@ -36,11 +61,28 @@ namespace apcf {
 	}
 
 
-	size_t Config::keyCount() const { return data_.size(); }
+	size_t Config::entryCount() const { return data_.size(); }
 
 
 	ConfigHierarchy Config::getHierarchy() const {
 		return ConfigHierarchy(data_);
+	}
+
+
+	Config Config::getSubconfig(const Key& key) const {
+		Config r;
+		auto cur = data_.lower_bound(key);
+		auto end = data_.end();
+		if(cur != end) {
+			while(cmpKeyPrefix(key, cur->first)) {
+				assert(cur->first.size() > key.size());
+				auto oldSize = cur->first.size();
+				auto newSize = oldSize - (key.size() + 1);
+				r.set(Key(cur->first.data() + oldSize - newSize, newSize), cur->second);
+				++ cur;
+			}
+		}
+		return r;
 	}
 
 
@@ -177,27 +219,27 @@ namespace apcf {
 	}
 
 
-	void Config::set(const Key& key, RawData data) noexcept {
+	void Config::set(Key key, RawData data) noexcept {
 		data_[key] = std::move(data);
 	}
 
-	void Config::setBool(const Key& key, bool value) noexcept {
+	void Config::setBool(Key key, bool value) noexcept {
 		data_[key] = RawData(value);
 	}
 
-	void Config::setInt(const Key& key, int_t value) noexcept {
+	void Config::setInt(Key key, int_t value) noexcept {
 		data_[key] = RawData(value);
 	}
 
-	void Config::setFloat(const Key& key, float_t value) noexcept {
+	void Config::setFloat(Key key, float_t value) noexcept {
 		data_[key] = RawData(value);
 	}
 
-	void Config::setString(const Key& key, string_t value) noexcept {
+	void Config::setString(Key key, string_t value) noexcept {
 		data_[key] = RawData(value);
 	}
 
-	void Config::setArray(const Key& key, array_t array) noexcept {
+	void Config::setArray(Key key, array_t array) noexcept {
 		data_[key] = RawData::moveArray(array.data(), array.size());
 	}
 

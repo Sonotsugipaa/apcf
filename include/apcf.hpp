@@ -120,6 +120,7 @@ namespace apcf {
 		Key(std::initializer_list<const char*>);
 		explicit Key(const KeySpan&);
 		Key(const char* cStr): Key(std::string(cStr)) { }
+		Key(const char* str, size_t len): Key(std::string(str, len)) { }
 
 		Key(const Key&) = default;
 		Key(Key&&) = default;
@@ -282,14 +283,24 @@ namespace apcf {
 		Config& operator<<(Config&& r) { merge(std::move(r)); return *this; }
 		Config& operator>>(Config& r) const { return r.operator<<(*this); }
 
+		void mergeAsGroup(const Key& groupKey, const Config&);
+		void mergeAsGroup(const Key& groupKey, Config&&);
+
 		std::map<apcf::Key, apcf::RawData>::const_iterator begin() const;
 		std::map<apcf::Key, apcf::RawData>::const_iterator end() const;
 
-		size_t keyCount() const;
+		size_t entryCount() const;
+
+		[[deprecated("Use `entryCount` instead")]]
+		size_t keyCount() const { return entryCount(); }
 
 		/** Returns the Config's hierarchy, which can be used to implement logic
 		 * that depends on the relationships between keys. */
 		ConfigHierarchy getHierarchy() const;
+
+		/** Filters each key with the given key prefix, removing the latter from the former.
+		 * The key prefix is followed by an implicit separator. */
+		Config getSubconfig(const Key&) const;
 
 		std::optional<const RawData*> get(const Key&) const noexcept;
 		std::optional<bool>           getBool(const Key&) const;
@@ -298,12 +309,12 @@ namespace apcf {
 		std::optional<string_t>       getString(const Key&) const;
 		std::optional<array_span_t>   getArray(const Key&) const;
 
-		void set      (const Key&, RawData) noexcept;
-		void setBool  (const Key&, bool value) noexcept;
-		void setInt   (const Key&, int_t value) noexcept;
-		void setFloat (const Key&, float_t value) noexcept;
-		void setString(const Key&, string_t value) noexcept;
-		void setArray (const Key&, array_t value) noexcept;
+		void set      (Key, RawData) noexcept;
+		void setBool  (Key, bool value) noexcept;
+		void setInt   (Key, int_t value) noexcept;
+		void setFloat (Key, float_t value) noexcept;
+		void setString(Key, string_t value) noexcept;
+		void setArray (Key, array_t value) noexcept;
 	};
 
 
