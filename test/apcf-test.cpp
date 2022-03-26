@@ -2,6 +2,7 @@
 
 #include <apcf.hpp>
 #include <apcf_hierarchy.hpp>
+#include <apcf_templates.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -72,22 +73,6 @@ namespace {
 			return eFailure;
 		};
 	}
-
-
-	template<typename T>
-	std::optional<T> getCfgValue(const Config&, const Key&);
-
-	template<>
-	std::optional<bool> getCfgValue<bool>(const Config& cfg, const Key& key) { return cfg.getBool(key); }
-
-	template<>
-	std::optional<apcf::int_t> getCfgValue<apcf::int_t>(const Config& cfg, const Key& key) { return cfg.getInt(key); }
-
-	template<>
-	std::optional<apcf::float_t> getCfgValue<apcf::float_t>(const Config& cfg, const Key& key) { return cfg.getFloat(key); }
-
-	template<>
-	std::optional<apcf::string_t> getCfgValue<apcf::string_t>(const Config& cfg, const Key& key) { return cfg.getString(key); }
 
 
 	template<typename T>
