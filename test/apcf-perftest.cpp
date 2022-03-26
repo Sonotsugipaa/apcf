@@ -99,7 +99,7 @@ namespace {
 			unsigned repeat = (rng() % REPEAT_MAX_HALF) * 4;
 			for(unsigned i=0; i < repeat; ++i) {
 				apcf::Key key = apcf::Key(superKey + '.' + genKey(0));
-				switch(rng() % 3) {
+				switch(rng() % 5) {
 					default: [[fallthrough]];
 					case 0: cfg->set(key, 1 == rng() % 1); break;
 					case 1: cfg->set(key, apcf::int_t(rng())); break;
@@ -154,7 +154,7 @@ namespace {
 		using Rules = apcf::SerializationRules;
 		constexpr unsigned ROOT_GROUPS = 0x20;
 		for(unsigned i=0; i < ROOT_GROUPS; ++i) {
-			genEntries(&cfgWr, genKey(0), 0, 16);
+			genEntries(&cfgWr, genKey(0), 0, 24);
 		}
 		auto begTime = nowUs();
 		Rules rules = { };

@@ -14,6 +14,7 @@
 namespace {
 
 	using apcf::Config;
+	using apcf::Key;
 
 	constexpr auto eFailure = utest::ResultType::eFailure;
 	constexpr auto eNeutral = utest::ResultType::eNeutral;
@@ -73,6 +74,44 @@ namespace {
 	}
 
 
+	template<typename T>
+	std::optional<T> getCfgValue(const Config&, const Key&);
+
+	template<>
+	std::optional<bool> getCfgValue<bool>(const Config& cfg, const Key& key) { return cfg.getBool(key); }
+
+	template<>
+	std::optional<apcf::int_t> getCfgValue<apcf::int_t>(const Config& cfg, const Key& key) { return cfg.getInt(key); }
+
+	template<>
+	std::optional<apcf::float_t> getCfgValue<apcf::float_t>(const Config& cfg, const Key& key) { return cfg.getFloat(key); }
+
+	template<>
+	std::optional<apcf::string_t> getCfgValue<apcf::string_t>(const Config& cfg, const Key& key) { return cfg.getString(key); }
+
+
+	template<typename T>
+	bool checkValue(
+			const Config& cfg, std::ostream& out,
+			const Key& key, T expect
+	) {
+		auto got = getCfgValue<T>(cfg, key);
+		if(! got.has_value()) {
+			out
+				<< "Expected entry `" << key << '='
+				<< expect << "`, found none" << std::endl;
+			return false;
+		}
+		if(got.value() != expect) {
+			out
+				<< "Expected entry `" << key << '=' << expect
+				<< "`, found value " << got.value() << std::endl;
+			return false;
+		}
+		return true;
+	};
+
+
 	utest::ResultType testVirtualRdWr(std::ostream&) {
 		struct Reader : public apcf::io::Reader {
 			bool isAtEof() const { return true; }
@@ -90,57 +129,34 @@ namespace {
 	}
 
 
-	utest::ResultType testSetGetBool(std::ostream&) {
+	utest::ResultType testSetGetBool(std::ostream& out) {
 		Config cfg;
 		cfg.setBool("key.subkey.bool", true);
-		auto found = cfg.get("key.subkey.bool");
-		return (bool(found) && found.value()->data.boolValue) ? eSuccess : eFailure;
+		return checkValue<bool>(cfg, out, "key.subkey.bool", true)? eSuccess : eFailure;
 	}
 
-	utest::ResultType testSetGetInt(std::ostream&) {
+	utest::ResultType testSetGetInt(std::ostream& out) {
 		Config cfg;
 		cfg.setInt("key.subkey.int", 7);
-		auto found = cfg.get("key.subkey.int");
-		return (bool(found) && found.value()->data.intValue == 7) ? eSuccess : eFailure;
+		return checkValue<apcf::int_t>(cfg, out, "key.subkey.int", 7)? eSuccess : eFailure;
 	}
 
-	utest::ResultType testSetGetFloat(std::ostream&) {
+	utest::ResultType testSetGetFloat(std::ostream& out) {
 		Config cfg;
 		cfg.setFloat("key.subkey.float", 7.2);
-		auto found = cfg.get("key.subkey.float");
-		return (bool(found) && found.value()->data.floatValue == 7.2) ? eSuccess : eFailure;
+		return checkValue<apcf::float_t>(cfg, out, "key.subkey.float", 7.2)? eSuccess : eFailure;
 	}
 
-	utest::ResultType testSetGetString(std::ostream&) {
+	utest::ResultType testSetGetString(std::ostream& out) {
 		Config cfg;
 		const std::string testString = "strValue";
 		cfg.setString("key.subkey.string", testString);
-		auto found = cfg.get("key.subkey.string");
-		if(! found) {
-			return eFailure;
-		}
-		return
-			(0 == strncmp(
-				testString.data(),
-				found.value()->data.stringValue.data(),
-				testString.size()
-			))? eSuccess : eFailure;
+		return checkValue<apcf::string_t>(cfg, out, "key.subkey.string", testString)? eSuccess : eFailure;
 	}
 
-	utest::ResultType testSetGetArray(std::ostream&) {
-		Config cfg;
-		const std::string testString = "strValue";
-		cfg.setString("key.subkey.string", testString);
-		auto found = cfg.get("key.subkey.string");
-		if(! found) {
-			return eFailure;
-		}
-		return
-			(0 == strncmp(
-				testString.data(),
-				found.value()->data.stringValue.data(),
-				testString.size()
-			))? eSuccess : eFailure;
+	utest::ResultType testSetGetArray(std::ostream& out) {
+		out << "TBW" << std::endl;
+		return eFailure;
 	}
 
 
@@ -215,24 +231,14 @@ namespace {
 			"    group4 { value1 = 5 }"
 			"  }\n"
 			"}\n" );
-		bool result = true;
-		auto checkEntry = [&out, &cfg, &result](const apcf::Key& key, apcf::int_t value) {
-			auto entry = cfg.getInt(key);
-			if(! entry.has_value()) {
-				out << "Missing entry for `" << key << '`' << std::endl;
-				result = false;
-			}
-			if(entry.value() != value) {
-				out << "Entry `" << key << "` has value " << entry.value() << ", expected " << value << std::endl;
-				result = false;
-			}
-		};
-		checkEntry("group1.value1", 1);
-		checkEntry("group1.value2", 2);
-		checkEntry("group1.group2.value1", 3);
-		checkEntry("group1.group2.value2", 4);
-		checkEntry("group1.group3.group4.value1", 5);
-		return result? eSuccess : eFailure;
+		return
+			(
+				checkValue<apcf::int_t>(cfg, out, "group1.value1", 1) &
+				checkValue<apcf::int_t>(cfg, out, "group1.value2", 2) &
+				checkValue<apcf::int_t>(cfg, out, "group1.group2.value1", 3) &
+				checkValue<apcf::int_t>(cfg, out, "group1.group2.value2", 4) &
+				checkValue<apcf::int_t>(cfg, out, "group1.group3.group4.value1", 5)
+			)? eSuccess : eFailure;
 	}
 
 	utest::ResultType testUnmatchedGroupClosure(std::ostream& out) {
@@ -299,110 +305,55 @@ namespace {
 			success = false;
 			out
 				<< "Config::getSubkeysOf returned " << subkeys.size()
-				<< " keys, expected " << expectedSubkeys << '\n';
+				<< " keys, expected " << expectedSubkeys << std::endl;
 		}
-		out.flush();
 		return success? eSuccess : eFailure;
 	}
 
 
 	utest::ResultType testStrConfig(std::ostream& out) {
-		Config cfg = Config::parse("nothing = \"zero\"\n generic.key = \"one \\\\ \\\"quote\\\"\"");
-		auto val = cfg.getString("generic.key");
-		if(val.has_value() && val.value() != std::string("one \\ \"quote\"")) {
-			auto got = val.value();
-			out << "Expected `" << std::string("one \\ \"quote\"") << "`, got `" << got << '`' << std::endl;
-			return eFailure;
-		}
-		return eSuccess;
+		Config cfg = Config::parse("nothing = \"zero\"\n generic.key = \"one backslash \\\\ \\\"double quote\\\"\"");
+		return checkValue<apcf::string_t>(cfg, out, "generic.key", "one backslash \\ \"double quote\"")? eSuccess : eFailure;
 	}
 
 	utest::ResultType testIntConfig(std::ostream& out) {
 		Config cfg = Config::parse("nothing = 51\n generic.key = 62");
-		auto val = cfg.getInt("generic.key");
-		if(val.has_value() && val.value() != 62) {
-			auto got = val.value();
-			out << "Expected `" << 62 << "`, got `" << got << '`' << std::endl;
-			return eFailure;
-		}
-		return eSuccess;
+		return checkValue<apcf::int_t>(cfg, out, "generic.key", 62)? eSuccess : eFailure;
 	}
 
 	utest::ResultType testFloatConfig(std::ostream& out) {
 		Config cfg = Config::parse("nothing = 51.4\n generic.key = 62.75");
-		auto val = cfg.getFloat("generic.key");
-		if(val.has_value() && val.value() != 62.75) {
-			auto got = val.value();
-			out << "Expected `" << 62.75 << "`, got `" << got << '`' << std::endl;
-			return eNeutral;
-		}
-		return eSuccess;
+		return checkValue<apcf::float_t>(cfg, out, "generic.key", 62.75)? eSuccess : eFailure;
 	}
 
 	utest::ResultType testBoolConfigTrue(std::ostream& out) {
 		Config cfg = Config::parse("nothing = false\n generic.key = true");
-		auto val = cfg.getBool("generic.key");
-		if(val.has_value() && val.value() != true) {
-			auto got = val.value();
-			out << "Expected `" << true << "`, got `" << got << '`' << std::endl;
-			return eFailure;
-		}
-		return eSuccess;
+		return checkValue<bool>(cfg, out, "generic.key", true)? eSuccess : eFailure;
 	}
 
 	utest::ResultType testBoolConfigYes(std::ostream& out) {
 		Config cfg = Config::parse("nothing = no\n generic.key = yes");
-		auto val = cfg.getBool("generic.key");
-		if(val.has_value() && val.value() != true) {
-			auto got = val.value();
-			out << "Expected `" << true << "`, got `" << got << '`' << std::endl;
-			return eFailure;
-		}
-		return eSuccess;
+		return checkValue<bool>(cfg, out, "generic.key", true)? eSuccess : eFailure;
 	}
 
 	utest::ResultType testBoolConfigY(std::ostream& out) {
 		Config cfg = Config::parse("nothing = n\n generic.key = y");
-		auto val = cfg.getBool("generic.key");
-		if(val.has_value() && val.value() != true) {
-			auto got = val.value();
-			out << "Expected `" << true << "`, got `" << got << '`' << std::endl;
-			return eFailure;
-		}
-		return eSuccess;
+		return checkValue<bool>(cfg, out, "generic.key", true)? eSuccess : eFailure;
 	}
 
 	utest::ResultType testBoolConfigFalse(std::ostream& out) {
 		Config cfg = Config::parse("nothing = true\n generic.key = false");
-		auto val = cfg.getBool("generic.key");
-		if(val.has_value() && val.value() != false) {
-			auto got = val.value();
-			out << "Expected `" << false << "`, got `" << got << '`' << std::endl;
-			return eFailure;
-		}
-		return eSuccess;
+		return checkValue<bool>(cfg, out, "generic.key", false)? eSuccess : eFailure;
 	}
 
 	utest::ResultType testBoolConfigNo(std::ostream& out) {
 		Config cfg = Config::parse("nothing = yes\n generic.key = no");
-		auto val = cfg.getBool("generic.key");
-		if(val.has_value() && val.value() != false) {
-			auto got = val.value();
-			out << "Expected `" << false << "`, got `" << got << '`' << std::endl;
-			return eFailure;
-		}
-		return eSuccess;
+		return checkValue<bool>(cfg, out, "generic.key", false)? eSuccess : eFailure;
 	}
 
 	utest::ResultType testBoolConfigN(std::ostream& out) {
 		Config cfg = Config::parse("nothing = y\n generic.key = n");
-		auto val = cfg.getBool("generic.key");
-		if(val.has_value() && val.value() != false) {
-			auto got = val.value();
-			out << "Expected `" << false << "`, got `" << got << '`' << std::endl;
-			return eFailure;
-		}
-		return eSuccess;
+		return checkValue<bool>(cfg, out, "generic.key", false)? eSuccess : eFailure;
 	}
 
 
@@ -595,27 +546,11 @@ namespace {
 	utest::ResultType testSubconfig(std::ostream& out) {
 		Config cfg = Config::parse("group{subgroup{1=2 3=4}5=6}rootval=7");
 		Config subCfg = cfg.getSubconfig("group");
-		auto checkValue = [&](const apcf::Key& key, apcf::int_t expect) {
-			auto got = subCfg.getInt(key);
-			if(! got.has_value()) {
-				out
-					<< "Expected entry `" << key << '='
-					<< std::to_string(expect) << "`, found none" << std::endl;
-				return false;
-			}
-			if(got.value() != expect) {
-				out
-					<< "Expected entry `" << key << '=' << std::to_string(expect)
-					<< "`, found value " << std::to_string(got.value()) << std::endl;
-				return false;
-			}
-			return true;
-		};
 		return
 			bool(
-				checkValue("subgroup.1", 2) &
-				checkValue("subgroup.3", 4) &
-				checkValue("5", 6)
+				checkValue<apcf::int_t>(subCfg, out, "subgroup.1", 2) &
+				checkValue<apcf::int_t>(subCfg, out, "subgroup.3", 4) &
+				checkValue<apcf::int_t>(subCfg, out, "5", 6)
 			)? eSuccess : eFailure;
 	}
 
@@ -628,36 +563,17 @@ namespace {
 		} else {
 			cfg.mergeAsGroup("group1", Config::parse("3=13 4=14"));
 		}
-		constexpr auto checkValue = [](
-				const Config& cfg, std::ostream& out,
-				const apcf::Key& key, apcf::int_t expect
-		) {
-			auto got = cfg.getInt(key);
-			if(! got.has_value()) {
-				out
-					<< "Expected entry `" << key << '='
-					<< std::to_string(expect) << "`, found none" << std::endl;
-				return false;
-			}
-			if(got.value() != expect) {
-				out
-					<< "Expected entry `" << key << '=' << std::to_string(expect)
-					<< "`, found value " << std::to_string(got.value()) << std::endl;
-				return false;
-			}
-			return true;
-		};
 		if constexpr(existing) {
 			return
 				bool(
-					checkValue(cfg, out, "group2.3", 23) &
-					checkValue(cfg, out, "group2.4", 24)
+					checkValue<apcf::int_t>(cfg, out, "group2.3", 23) &
+					checkValue<apcf::int_t>(cfg, out, "group2.4", 24)
 				)? eSuccess : eFailure;
 		} else {
 			return
 				bool(
-					checkValue(cfg, out, "group1.3", 13) &
-					checkValue(cfg, out, "group1.4", 14)
+					checkValue<apcf::int_t>(cfg, out, "group1.3", 13) &
+					checkValue<apcf::int_t>(cfg, out, "group1.4", 14)
 				)? eSuccess : eFailure;
 		}
 	}
