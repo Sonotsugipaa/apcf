@@ -140,8 +140,35 @@ namespace {
 	}
 
 	utest::ResultType testSetGetArray(std::ostream& out) {
-		out << "TBW" << std::endl;
-		return eFailure;
+		Config cfg;
+		const apcf::array_t testArray = { apcf::int_t(3), apcf::int_t(5) };
+		cfg.setArray("key.subkey.array", testArray);
+
+		auto got = getCfgValue<apcf::array_span_t>(cfg, "key.subkey.array");
+		if(! got.has_value()) {
+			out << "Expected entry `key.subkey.array=[3 5]`, found none" << std::endl;
+			return eFailure;
+		}
+		bool cmpEq = testArray.size() == got.value().size();
+		if(cmpEq) {
+			for(size_t i=0; i < testArray.size(); ++i) {
+				if(got.value()[i].type != apcf::DataType::eInt) { cmpEq = false; break; }
+				if(got.value()[i].data.intValue != testArray[i].data.intValue) { cmpEq = false; break; }
+			}
+		}
+		if(! cmpEq) {
+			out << "Expected entry `key.subkey.array=[3 5]`, found value `[";
+			if(! got.value().empty()) {
+				out << got.value()[0].serialize();
+				for(size_t i=1; i < got.value().size(); ++i) {
+					out << ' ' << got.value()[i].serialize();
+				}
+			}
+			out << "]`" << std::endl;
+			return eFailure;
+		}
+
+		return eSuccess;
 	}
 
 
