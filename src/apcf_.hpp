@@ -182,11 +182,9 @@ namespace apcf_util {
 
 	template<typename T>
 	constexpr T setFlags(T src, bool value, T bits) {
-		if(value) {
-			return src | bits;
-		} else {
-			return src & (~bits);
-		}
+		return
+			((src | bits)    * value) |
+			((src & (~bits)) * ! value);
 	}
 
 	template<typename T>

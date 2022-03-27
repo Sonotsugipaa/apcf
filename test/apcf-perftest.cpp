@@ -101,7 +101,7 @@ namespace {
 				superKey + '.' + genKey(0),
 				minDepth - 1, maxDepth - 1);
 		} else {
-			constexpr unsigned repeat = 4*5;
+			constexpr unsigned repeat = 5;
 			for(unsigned i=0; i < repeat; ++i) {
 				apcf::Key key = apcf::Key(superKey + '.' + genKey(0));
 				switch(rng() % 5) {
@@ -198,7 +198,8 @@ namespace {
 int main(int, char**) {
 	auto batch = utest::TestBatch(std::cout);
 	batch
-		.run("Parse/serialize benchmark (pretty, 5x4)", testPerformance<true, 5, 4>)
+		.run("Parse/serialize benchmark (pretty, 5x4)", testPerformance<true, 8, 4>)
+		.run("Parse/serialize benchmark (compact, 5x4)", testPerformance<false, 8, 4>)
 		.run("Parse/serialize benchmark (pretty, 20x24)", testPerformance<true, 20, 24>)
 		.run("Parse/serialize benchmark (compact, 20x24)", testPerformance<false, 20, 24>);
 	return batch.failures() == 0? EXIT_SUCCESS : EXIT_FAILURE;

@@ -107,7 +107,12 @@ namespace apcf_serialize {
 			if(data.size() > 0) {
 				dst.append(data.data()->serialize(rules, state.indentationLevel)); }
 			for(size_t i=1; i < data.size(); ++i) {
-				dst.push_back(' ');
+				if(
+					data[i-1].type != apcf::DataType::eArray &&
+					data[i].type != apcf::DataType::eArray
+				) {
+					dst.push_back(' ');
+				}
 				dst.append(data[i].serialize(rules, state.indentationLevel));
 			}
 		}
@@ -205,7 +210,10 @@ namespace apcf_serialize {
 			writeValue(sd, entryValue);
 			sd.dst.writeChar('\n');
 		} else {
-			if(getFlags<uint_fast8_t>(sd.lastLineFlags, lineFlagsOwnEntryBit)) {
+			if(
+				getFlags<uint_fast8_t>(sd.lastLineFlags, lineFlagsOwnEntryBit) &&
+				! getFlags<uint_fast8_t>(sd.lastLineFlags, lineFlagsArrayEndBit)
+			) {
 				sd.dst.writeChar(' ');
 			}
 			sd.dst.writeChars(key);
@@ -215,7 +223,7 @@ namespace apcf_serialize {
 		sd.lastLineFlags = setFlags<uint_fast8_t>(sd.lastLineFlags, false, lineFlagsGroupEndBit);
 		// sd.lastLineFlags = setFlags<uint_fast8_t>(sd.lastLineFlags, false, lineFlagsGroupEntryBit); // Do NOT reset this bit, its meaning is tied to the next line (and will be reset then)
 		sd.lastLineFlags = setFlags<uint_fast8_t>(sd.lastLineFlags, true, lineFlagsOwnEntryBit);
-		sd.lastLineFlags = setFlags<uint_fast8_t>(sd.lastLineFlags, doSpaceArray, lineFlagsArrayEndBit);
+		sd.lastLineFlags = setFlags<uint_fast8_t>(sd.lastLineFlags, thisLineIsArray, lineFlagsArrayEndBit);
 	}
 
 
@@ -239,7 +247,10 @@ namespace apcf_serialize {
 			sd.dst.writeChar(GRAMMAR_GROUP_BEGIN);
 			sd.dst.writeChar('\n');
 		} else {
-			if(getFlags<uint_fast8_t>(sd.lastLineFlags, lineFlagsOwnEntryBit)) {
+			if(
+				getFlags<uint_fast8_t>(sd.lastLineFlags, lineFlagsOwnEntryBit) &&
+				! getFlags<uint_fast8_t>(sd.lastLineFlags, lineFlagsArrayEndBit)
+			) {
 				sd.dst.writeChar(' ');
 			}
 			sd.dst.writeChars(key);
