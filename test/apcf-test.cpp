@@ -425,7 +425,7 @@ namespace {
 			"\n"
 			"rootvalue-string = \"str \\\"literal\\\"\"\n";
 		apcf::SerializationRules rules = { };
-		rules.flags = apcf::SerializationRules::ePretty;
+		rules.flags = apcf::SerializationRules::eNull;
 		rules.indentationSize = 2;
 		auto serialized = cfg.serialize(rules);
 		if(serialized != expect) {
@@ -461,7 +461,7 @@ namespace {
 			"rootvalue-int{negative=-1 positive=1}"
 			"rootvalue-string=\"str \\\"literal\\\"\"";
 		apcf::SerializationRules rules = { };
-		rules.flags = apcf::SerializationRules::eNull;
+		rules.flags = apcf::SerializationRules::eCompact;
 		auto serialized = cfg.serialize(rules);
 		if(serialized != expect) {
 			out << "// The serialized config is probably incorrect.\n";

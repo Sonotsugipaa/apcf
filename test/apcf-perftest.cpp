@@ -169,9 +169,9 @@ namespace {
 		Rules rules = { };
 		rules.indentationSize = 3;
 		if constexpr(pretty) {
-			rules.flags = Rules::ePretty | Rules::eCompactArrays;
-		} else {
 			rules.flags = Rules::eCompactArrays;
+		} else {
+			rules.flags = Rules::eCompact | Rules::eCompactArrays;
 		}
 		cfgWr.write(std::ofstream(cfgFilePath<pretty, rootGroups, depth>), rules);
 		auto endTime = (nowUs() - begTime);
@@ -198,8 +198,8 @@ namespace {
 int main(int, char**) {
 	auto batch = utest::TestBatch(std::cout);
 	batch
-		.run("Parse/serialize benchmark (pretty, 5x4)", testPerformance<true, 8, 4>)
-		.run("Parse/serialize benchmark (compact, 5x4)", testPerformance<false, 8, 4>)
+		.run("Parse/serialize benchmark (pretty, 8x4)", testPerformance<true, 8, 4>)
+		.run("Parse/serialize benchmark (compact, 8x4)", testPerformance<false, 8, 4>)
 		.run("Parse/serialize benchmark (pretty, 20x24)", testPerformance<true, 20, 24>)
 		.run("Parse/serialize benchmark (compact, 20x24)", testPerformance<false, 20, 24>);
 	return batch.failures() == 0? EXIT_SUCCESS : EXIT_FAILURE;

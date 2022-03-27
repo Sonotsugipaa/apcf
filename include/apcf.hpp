@@ -202,12 +202,13 @@ namespace apcf {
 
 	struct SerializationRules {
 		enum FlagBits : unsigned {
-			eNull           = 0b00000,
-			ePretty         = 0b00001,
-			eExpandKeys     = 0b00010,
-			eIndentWithTabs = 0b00100,
-			eCompactArrays  = 0b01000,
-			eFloatNoFail    = 0b10000
+			eNull           = 0b000000,
+			ePretty [[deprecated("Deprecated in favor of `eCompact` - has no effect")]] = 0b000001,
+			eExpandKeys     = 0b000010,
+			eIndentWithTabs = 0b000100,
+			eCompactArrays  = 0b001000,
+			eFloatNoFail    = 0b010000,
+			eCompact        = 0b100000
 		};
 		const ConfigHierarchy* hierarchy = nullptr;
 		size_t indentationSize = 3;

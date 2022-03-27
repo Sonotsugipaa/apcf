@@ -78,7 +78,7 @@ namespace apcf_serialize {
 	) {
 		using Rules = apcf::SerializationRules;
 		dst.push_back(GRAMMAR_ARRAY_BEGIN);
-		if(rules.flags & Rules::ePretty) {
+		if(! (rules.flags & Rules::eCompact)) {
 			if(rules.flags & Rules::eCompactArrays) {
 				dst.push_back(' ');
 				if(data.size() > 0) {
@@ -195,7 +195,7 @@ namespace apcf_serialize {
 			sd.dst.writeChars(serializedValue);
 		};
 		assert(apcf::isKeyValid(key));
-		if(sd.rules.flags & apcf::SerializationRules::ePretty) {
+		if(! (sd.rules.flags & apcf::SerializationRules::eCompact)) {
 			if(
 				getFlags<uint_fast8_t>(sd.lastLineFlags,
 					lineFlagsArrayEndBit | lineFlagsGroupEndBit | lineFlagsGroupEntryBit
@@ -231,7 +231,7 @@ namespace apcf_serialize {
 			SerializeData& sd,
 			const apcf::Key& key
 	) {
-		if(sd.rules.flags & apcf::SerializationRules::ePretty) {
+		if(! (sd.rules.flags & apcf::SerializationRules::eCompact)) {
 			if(
 				getFlags<uint_fast8_t>(sd.lastLineFlags,
 					lineFlagsGroupEndBit | lineFlagsArrayEndBit | lineFlagsOwnEntryBit
@@ -265,7 +265,7 @@ namespace apcf_serialize {
 	void serializeLineGroupEnd(
 			SerializeData& sd
 	) {
-		if(sd.rules.flags & apcf::SerializationRules::ePretty) {
+		if(! (sd.rules.flags & apcf::SerializationRules::eCompact)) {
 			popIndent(sd.rules, sd.state);
 			sd.dst.writeChars(sd.state.indentation);
 			sd.dst.writeChar(GRAMMAR_GROUP_END);
@@ -318,7 +318,7 @@ namespace apcf_serialize {
 					}
 				} else {
 					#define SERIALIZE_(SET_) { for(const auto& childKey : SET_) serializeHierarchy(state, childKey, std::move(key)); }
-					if(state.sd->rules.flags & apcf::SerializationRules::ePretty) {
+					if(! (state.sd->rules.flags & apcf::SerializationRules::eCompact)) {
 						std::set<Key> groups;
 						std::set<Key> arrays;
 						std::set<Key> singleEntries;
@@ -370,7 +370,7 @@ namespace apcf_serialize {
 			const std::set<Key>& subkeys = hierarchyPtr->getSubkeys({ });
 
 			#define SERIALIZE_(SET_) { for(const auto& rootChild : SET_) serializeHierarchy(saParams, rootChild, { }); }
-			if(sd.rules.flags & Rules::ePretty) {
+			if(! (sd.rules.flags & Rules::eCompact)) {
 				std::set<Key> groups;
 				std::set<Key> arrays;
 				std::set<Key> singleEntries;
