@@ -19,13 +19,20 @@ namespace apcf {
 		ConfigHierarchy(const ConfigHierarchy&) = default;
 		ConfigHierarchy(ConfigHierarchy&&) = default;
 
-		ConfigHierarchy(const std::map<apcf::Key, apcf::RawData>&);
+		ConfigHierarchy(const std::map<Key, RawData>&);
 
 		ConfigHierarchy& operator=(const ConfigHierarchy&) = default;
 		ConfigHierarchy& operator=(ConfigHierarchy&&) = default;
 
-		void putKey(const apcf::Key&);
+		/** Insert every level of the given key into the hierarchy. */
+		void putKey(const Key&);
 
+		/** Returns a (reference to a) set of all the keys within the
+		 * hierarchy whose "parent" key matches the given argument.
+		 *
+		 * Note that the returned subkeys do not necessarily have an
+		 * associated value: if a Config contains entries with keys
+		 * "a.b" and "a.c.d", the subkeys of "a" are "a.b" and "a.c". */
 		const std::set<Key>& getSubkeys(const Key&) const;
 
 		/** If the given key has exactely one subkey, recursively replaces

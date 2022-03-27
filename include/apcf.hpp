@@ -277,14 +277,23 @@ namespace apcf {
 		void write(std::ostream&, SerializationRules = { }) const;
 		void write(std::ostream&& tmp, SerializationRules sr = { }) const { auto& tmpProxy = tmp; return write(tmpProxy, sr); }
 
+		/** Copy every entry of the given Config. */
 		void merge(const Config&);
+
+		/** Copy every entry of the given Config. */
 		void merge(Config&&);
+
+		/** Copy every entry of the given Config, with their keys prefixed
+		 * by the given group name and an implicit separator. */
+		void mergeAsGroup(const Key& groupName, const Config&);
+
+		/** Copy every entry of the given Config, with their keys prefixed
+		 * by the given group name and an implicit separator. */
+		void mergeAsGroup(const Key& groupName, Config&&);
+
 		Config& operator<<(const Config& r) { merge(r); return *this; }
 		Config& operator<<(Config&& r) { merge(std::move(r)); return *this; }
 		Config& operator>>(Config& r) const { return r.operator<<(*this); }
-
-		void mergeAsGroup(const Key& groupKey, const Config&);
-		void mergeAsGroup(const Key& groupKey, Config&&);
 
 		std::map<apcf::Key, apcf::RawData>::const_iterator begin() const;
 		std::map<apcf::Key, apcf::RawData>::const_iterator end() const;
@@ -298,9 +307,10 @@ namespace apcf {
 		 * that depends on the relationships between keys. */
 		ConfigHierarchy getHierarchy() const;
 
-		/** Filters each key with the given key prefix, removing the latter from the former.
-		 * The key prefix is followed by an implicit separator. */
-		Config getSubconfig(const Key&) const;
+		/** Filters each key with the given group name,
+		 * removing the latter from the former.
+		 * The group name is followed by an implicit separator. */
+		Config getSubconfig(const Key& group) const;
 
 		std::optional<const RawData*> get(const Key&) const noexcept;
 		std::optional<bool>           getBool(const Key&) const;
