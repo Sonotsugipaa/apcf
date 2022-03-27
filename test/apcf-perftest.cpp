@@ -12,12 +12,18 @@
 
 namespace {
 
+	using namespace std::string_literals;
 	using apcf::Config;
 
 	constexpr auto eNeutral = utest::ResultType::eNeutral;
 	constexpr auto eFailure = utest::ResultType::eFailure;
 
-	constexpr const char cfgFilePath[] = "test/.big_autogen.cfg";
+	template<bool pretty, unsigned rootGroups, unsigned depth>
+	const std::string cfgFilePath =
+		"test/.big_autogen_"s +
+		(pretty? "pretty_"s : "compact_"s) +
+		std::to_string(rootGroups) + "x"s +
+		std::to_string(depth) + ".cfg"s;
 
 	auto rng = std::minstd_rand();
 	Config cfgWr, cfgRd;
@@ -95,8 +101,7 @@ namespace {
 				superKey + '.' + genKey(0),
 				minDepth - 1, maxDepth - 1);
 		} else {
-			constexpr unsigned REPEAT_MAX_HALF = 3;
-			unsigned repeat = (rng() % REPEAT_MAX_HALF) * 4;
+			constexpr unsigned repeat = 4*5;
 			for(unsigned i=0; i < repeat; ++i) {
 				apcf::Key key = apcf::Key(superKey + '.' + genKey(0));
 				switch(rng() % 5) {
@@ -123,9 +128,11 @@ namespace {
 	}
 
 
-	utest::ResultType testPerformanceRd(std::ostream& out) {
+	template<bool pretty, unsigned rootGroups, unsigned depth>
+	bool testPerformanceRd(std::ostream& out) {
+		using namespace std::string_literals;
 		auto begTime = nowUs();
-		cfgRd = Config::read(std::ifstream(cfgFilePath));
+		cfgRd = Config::read(std::ifstream(cfgFilePath<pretty, rootGroups, depth>));
 		auto endTime = (nowUs() - begTime);
 		out
 			<< "Parsing " << cfgRd.entryCount()
@@ -135,7 +142,7 @@ namespace {
 			const auto& rdValueOpt = cfgRd.get(wrEntry.first);
 			if(! rdValueOpt.has_value()) {
 				out << "Config mismatch: failed to get existing key `" << wrEntry.first << "`" << std::endl;
-				return eFailure;
+				return false;
 			}
 			const auto& rdValue = *rdValueOpt.value();
 			const auto& wrValue = wrEntry.second;
@@ -143,29 +150,45 @@ namespace {
 				out
 					<< "Config mismatch: key `" << wrEntry.first << "` has been written as `"
 					<< wrValue.serialize(rules) << "`, but parsed as `" << rdValue.serialize(rules) << std::endl;
-				return eFailure;
+				return false;
 			}
 		}
-		return eNeutral;
+		return true;
 	}
 
 
-	utest::ResultType testPerformanceWr(std::ostream& out) {
+	template<bool pretty, unsigned rootGroups, unsigned depth>
+	bool testPerformanceWr(std::ostream& out) {
 		using Rules = apcf::SerializationRules;
-		constexpr unsigned ROOT_GROUPS = 0x20;
+		constexpr unsigned ROOT_GROUPS = rootGroups;
+		cfgWr = Config();
 		for(unsigned i=0; i < ROOT_GROUPS; ++i) {
-			genEntries(&cfgWr, genKey(0), 0, 24);
+			genEntries(&cfgWr, genKey(0), 0, depth);
 		}
 		auto begTime = nowUs();
 		Rules rules = { };
-		rules.indentationSize = 3,
-		rules.flags = Rules::ePretty | Rules::eCompactArrays;
-		cfgWr.write(std::ofstream(cfgFilePath), rules);
+		rules.indentationSize = 3;
+		if constexpr(pretty) {
+			rules.flags = Rules::ePretty | Rules::eCompactArrays;
+		} else {
+			rules.flags = Rules::eCompactArrays;
+		}
+		cfgWr.write(std::ofstream(cfgFilePath<pretty, rootGroups, depth>), rules);
 		auto endTime = (nowUs() - begTime);
 		out
 			<< "Serializing " << cfgWr.entryCount()
 			<< " entries took " << endTime << "us" << std::endl;
-		return eNeutral;
+		return true;
+	}
+
+
+	template<bool pretty, unsigned rootGroups, unsigned depth>
+	utest::ResultType testPerformance(std::ostream& out) {
+		return
+			(
+				testPerformanceWr<pretty, rootGroups, depth>(out) &
+				testPerformanceRd<pretty, rootGroups, depth>(out)
+			)? eNeutral : eFailure;
 	}
 
 }
@@ -175,7 +198,8 @@ namespace {
 int main(int, char**) {
 	auto batch = utest::TestBatch(std::cout);
 	batch
-		.run("Performance test (serialize)", testPerformanceWr)
-		.run("Performance test (parse)", testPerformanceRd);
+		.run("Parse/serialize benchmark (pretty, 5x4)", testPerformance<true, 5, 4>)
+		.run("Parse/serialize benchmark (pretty, 20x24)", testPerformance<true, 20, 24>)
+		.run("Parse/serialize benchmark (compact, 20x24)", testPerformance<false, 20, 24>);
 	return batch.failures() == 0? EXIT_SUCCESS : EXIT_FAILURE;
 }

@@ -310,7 +310,7 @@ namespace apcf {
 	}
 
 	Config Config::parse(const char* charSeqPtr, size_t length) {
-		auto src = StringReader(std::span<const char>(charSeqPtr, length));
+		auto src = io::StringReader(std::span<const char>(charSeqPtr, length));
 		ParseData pd = {
 			.cfg = { },
 			.src = src,
@@ -331,7 +331,7 @@ namespace apcf {
 	}
 
 	Config Config::read(std::istream& in, size_t count) {
-		auto src = StdStreamReader(in, count);
+		auto src = io::StdStreamReader(in, count);
 		ParseData pd = {
 			.cfg = { },
 			.src = src,

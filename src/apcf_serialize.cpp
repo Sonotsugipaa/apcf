@@ -398,7 +398,7 @@ namespace apcf {
 	std::string Config::serialize(SerializationRules sr) const {
 		std::string r;
 		SerializationState state = { };
-		auto wr = StringWriter(&r, 0);
+		auto wr = io::StringWriter(&r, 0);
 		SerializeData serializeData = {
 			.dst = wr,
 			.rules = sr,
@@ -422,7 +422,7 @@ namespace apcf {
 
 	void Config::write(std::ostream& out, SerializationRules sr) const {
 		SerializationState state = { };
-		auto wr = StdStreamWriter(out);
+		auto wr = io::StdStreamWriter(out);
 		SerializeData serializeData = {
 			.dst = wr,
 			.rules = sr,

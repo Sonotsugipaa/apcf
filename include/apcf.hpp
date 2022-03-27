@@ -15,50 +15,109 @@
 
 
 
-namespace apcf::io {
-
-	class Reader {
-	protected:
-		size_t lineCtr;
-		size_t linePos;
-
-	public:
-		Reader(): lineCtr(0), linePos(0) { }
-		virtual ~Reader() { }
-
-		/** Returns `true` if the cursor is at (or past) the end of
-		 * the stream/file, `false` otherwise. */
-		virtual bool isAtEof() const = 0;
-
-		/** Returns the character at the cursor, or '\0' if the
-		 * latter is past the end of the stream/file. */
-		virtual char getChar() const = 0;
-
-		/** Try and move the cursor forward:
-		 * returns `true` if the operation succeeded, `false` if
-		 * the cursor is already at the end of the stream/file. */
-		virtual bool fwdOrEof() = 0;
-
-		/** Return the 0-indexed line of the cursor. */
-		size_t lineCounter() const { return lineCtr; }
-
-		/** Return the 0-indexed line of the cursor. */
-		size_t linePosition() const { return linePos; }
-	};
-
-
-	class Writer {
-	public:
-		virtual void writeChar(char) = 0;
-		virtual void writeChars(const char* begin, const char* end) = 0;
-		virtual void writeChars(const std::string& str) = 0;
-	};
-
-}
-
-
-
 namespace apcf {
+
+	namespace io {
+
+		class Reader {
+		protected:
+			size_t lineCtr;
+			size_t linePos;
+
+		public:
+			Reader(): lineCtr(0), linePos(0) { }
+			virtual ~Reader() { }
+
+			/** Returns `true` if the cursor is at (or past) the end of
+			* the stream/file, `false` otherwise. */
+			virtual bool isAtEof() const = 0;
+
+			/** Returns the character at the cursor, or '\0' if the
+			* latter is past the end of the stream/file. */
+			virtual char getChar() const = 0;
+
+			/** Try and move the cursor forward:
+			* returns `true` if the operation succeeded, `false` if
+			* the cursor is already at the end of the stream/file. */
+			virtual bool fwdOrEof() = 0;
+
+			/** Return the 0-indexed line of the cursor. */
+			size_t lineCounter() const { return lineCtr; }
+
+			/** Return the 0-indexed line of the cursor. */
+			size_t linePosition() const { return linePos; }
+		};
+
+
+		class Writer {
+		public:
+			virtual void writeChar(char) = 0;
+			virtual void writeChars(const char* begin, const char* end) = 0;
+			virtual void writeChars(const std::string& str) = 0;
+		};
+
+
+		class StringWriter : public apcf::io::Writer {
+		public:
+			std::string* dst;
+			size_t cursor;
+
+			StringWriter();
+			StringWriter(std::string* dst, size_t begin);
+
+			void writeChar(char c) override;
+			void writeChars(const char* begin, const char* end) override;
+			void writeChars(const std::string& str) override;
+		};
+
+
+		class StdStreamWriter : public apcf::io::Writer {
+		public:
+			std::ostream* dst;
+
+			StdStreamWriter();
+			StdStreamWriter(std::ostream& dst);
+
+			void writeChar(char c) override;
+			void writeChars(const char* begin, const char* end) override;
+			void writeChars(const std::string& str) override;
+		};
+
+
+		class StringReader : public apcf::io::Reader {
+		public:
+			std::span<const char, std::dynamic_extent> str;
+			size_t cursor;
+			size_t limit;
+
+			StringReader() = default;
+			StringReader(std::span<const char, std::dynamic_extent> str);
+
+			bool isAtEof() const override;
+			char getChar() const override;
+			bool fwdOrEof() override;
+		};
+
+
+		class StdStreamReader : public apcf::io::Reader {
+		public:
+			std::istream* str;
+			size_t charsLeft;
+			char current;
+
+			StdStreamReader() = default;
+			StdStreamReader(std::istream& str, size_t limit);
+			StdStreamReader(std::istream& str);
+
+			bool isAtEof() const override { return charsLeft <= 0; }
+			char getChar() const override { return current; }
+
+			bool fwdOrEof() override;
+		};
+
+	}
+
+
 
 	enum class DataType { eNull, eBool, eInt, eFloat, eString, eArray };
 

@@ -45,6 +45,7 @@
 	endif()
 	add_library(apcf ${APCF_LIB_TYPE}
 		src/apcf.cpp
+		src/apcf_io.cpp
 		src/apcf_config.cpp
 		src/apcf_hierarchy.cpp
 		src/apcf_util.cpp
