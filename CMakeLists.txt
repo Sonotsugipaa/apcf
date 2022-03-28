@@ -2,8 +2,8 @@
 
 	cmake_minimum_required(VERSION 3.20)
 	project(APCF
-		VERSION "0.2.3"
-		DESCRIPTION "Almost Plain-text Configuration Format library, designed to be user friendly.")
+		VERSION "0.3.0"
+		DESCRIPTION "Almost Plaintext Configuration Format library, designed to be user friendly.")
 
 
 # Set the project's structure
@@ -38,10 +38,12 @@
 	# Windows needs a lot of fluff in order to create a DLL, and I'm not going to copy paste base64-like macros everywhere if I'm targeting Linux.
 	# Solution: Windows uses a static build, while Linux (and other unsupported environments) use shared builds.
 	# Windows is already bloated all the way down to hell, anyway.
-	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-		set(APCF_LIB_TYPE STATIC)
-	else()
-		set(APCF_LIB_TYPE SHARED)
+	if(NOT DEFINED APCF_LIB_TYPE)
+		if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+			set(APCF_LIB_TYPE STATIC)
+		else()
+			set(APCF_LIB_TYPE SHARED)
+		endif()
 	endif()
 	add_library(apcf ${APCF_LIB_TYPE}
 		src/apcf.cpp

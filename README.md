@@ -16,15 +16,15 @@
 APCF is a data format intended to be easily readable and modifiable,
 and quick to use without *too* much boilerplate code.
 
+This document focuses on describing the APCF syntax, and how to build
+the library.
+
 For clarity, syntax is formally described with POSIX extended regular
 expressions (hereinafter "POSIX ERE"); any non-formal description of syntax
 implies that every element may *optionally* be separated by an ASCII
 space, a horizontal or vertical tab, a newline character,
 or a carriage return character - with the only exception of values,
 as described in their own section.
-
-This document focuses on describing the APCF syntax, and how to build
-the library.
 
 # Syntax
 
@@ -42,9 +42,9 @@ of entries with their keys **implicitly** beginning with the group name
 followed by a period; all of this followed by the character '}'.
 
 APCF data may contain comments, with a syntax equivalent to C++:
-single-line comments begin with the sequence "//" and end at the end of the
-line, while multi-line comments begin with the sequence "/\*" and end with the
-sequence "\*/".  
+single-line comments begin with the sequence "`//`" and end at the end of the
+line, while multi-line comments begin with the sequence "`/*`" and end with the
+sequence "`*/`".  
 Comments are completely ignored.
 
 ## Key Syntax
@@ -130,10 +130,10 @@ key.subkey1=1
 key.subkey2 = 2
  key.array_of_values =[1 2 3  4 ] // This is a comment
 
-groupname = "\"groupname\" can be a group AND a whole key simultaneously"
-groupname {
+group.name = "\"group.name\" can be a group AND a whole key simultaneously"
+group.name {
 	1 = "n = \n"
-	2 = "the value of \"groupname.1\" is a palindrome"
+	2 = "the value of \"group.name.1\" is a palindrome"
 }
 
 another-key.subkey = 7
@@ -142,15 +142,17 @@ another-key { subkey = 7 }
 compact{1=1 2=[3 4[1]]group{22.73=37.22}a=[]}
 ```
 
-- As described by the value of "groupname", it is allowed and non-redundant
+- No indentation dependent syntax, oh hi Python.
+- As described by the value of "group.name", it is allowed and non-redundant
   to use the full key of an entry as the name of a group and viceversa;
   they do not overlap.
 - The lines "`another-key.subkey = 7`" and
   "`another-key { subkey = 7 }`" are equivalent and perfectly redundant:
-  when multiple entries have the same key, only the last is to be considered.
-- As shown by the last line, despite the name of this format,
-  APCF can be pretty compressed.  
-  Or just pretty.
+  when multiple entries have the same key, only the last one is to be
+  considered.
+- As shown by the last line, despite the name of this language,
+  APCF can be pretty synthetic.  
+  Or just pretty, it's up to you.
 
 # Build And Install
 
@@ -182,10 +184,10 @@ This repository includes a Bash script named "install.sh".
 
 Except for a few regular expressions, the script is fairly simple to read;
 packagers should do so, and set the variables according to their needs - 
-especially so given that the script may have to be run as the root user,
-being potentially dangerous.
+especially so given that the script may have to run with administrative
+privileges, being potentially dangerous.
 
-In order to perform a system-wide "dumb install" to /usr/local, however,
+In order to perform a system-wide "dumb install" to "/usr/local", however,
 you can run the following Bash command:
 
 ``` bash
