@@ -91,11 +91,21 @@ namespace apcf_serialize {
 			} else {
 				if(data.size()) {
 					pushIndent(rules, state);
-					for(size_t i=0; i < data.size(); ++i) {
-						dst.push_back(GRAMMAR_NEWLINE);
-						dst.append(state.indentation);
-						dst.append(data[i].serialize(rules, state.indentationLevel));
+					#define APPEND_VAL_LN_(IDX_) { \
+						dst.push_back(GRAMMAR_NEWLINE); \
+						dst.append(state.indentation); \
+						dst.append(data[IDX_].serialize(rules, state.indentationLevel)); \
 					}
+					if(data.size() > 0) APPEND_VAL_LN_(0)
+					for(size_t i=1; i < data.size(); ++i) {
+						if(data[i-1].type == data[i].type && data[i].type == apcf::DataType::eArray) {
+							dst.push_back(' ');
+							dst.append(data[i].serialize(rules, state.indentationLevel));
+						} else {
+							APPEND_VAL_LN_(i)
+						}
+					}
+					#undef APPEND_VAL_LN_
 					popIndent(rules, state);
 					dst.push_back(GRAMMAR_NEWLINE);
 						dst.append(state.indentation);
@@ -108,8 +118,8 @@ namespace apcf_serialize {
 				dst.append(data.data()->serialize(rules, state.indentationLevel)); }
 			for(size_t i=1; i < data.size(); ++i) {
 				if(
-					data[i-1].type != apcf::DataType::eArray &&
-					data[i].type != apcf::DataType::eArray
+					(data[i-1].type != apcf::DataType::eArray) &&
+					(data[i].type != apcf::DataType::eArray)
 				) {
 					dst.push_back(' ');
 				}

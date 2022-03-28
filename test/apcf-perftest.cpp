@@ -167,11 +167,11 @@ namespace {
 		}
 		auto begTime = nowUs();
 		Rules rules = { };
-		rules.indentationSize = 3;
+		rules.indentationSize = 1;
 		if constexpr(pretty) {
-			rules.flags = Rules::eCompactArrays;
+			rules.flags = Rules::eIndentWithTabs | Rules::eCompactArrays;
 		} else {
-			rules.flags = Rules::eCompact | Rules::eCompactArrays;
+			rules.flags = Rules::eIndentWithTabs | Rules::eCompactArrays | Rules::eCompact;
 		}
 		cfgWr.write(std::ofstream(cfgFilePath<pretty, rootGroups, depth>), rules);
 		auto endTime = (nowUs() - begTime);
