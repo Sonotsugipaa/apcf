@@ -341,32 +341,32 @@ namespace {
 	}
 
 	utest::ResultType testBoolConfigTrue(std::ostream& out) {
-		Config cfg = Config::parse("nothing = false\n generic.key = true");
+		Config cfg = Config::parse("nothing = false\n generic{key=true}");
 		return checkValue<bool>(cfg, out, "generic.key", true)? eSuccess : eFailure;
 	}
 
 	utest::ResultType testBoolConfigYes(std::ostream& out) {
-		Config cfg = Config::parse("nothing = no\n generic.key = yes");
+		Config cfg = Config::parse("nothing = no\n generic{key=yes}");
 		return checkValue<bool>(cfg, out, "generic.key", true)? eSuccess : eFailure;
 	}
 
 	utest::ResultType testBoolConfigY(std::ostream& out) {
-		Config cfg = Config::parse("nothing = n\n generic.key = y");
+		Config cfg = Config::parse("nothing = n\n generic{key=y}");
 		return checkValue<bool>(cfg, out, "generic.key", true)? eSuccess : eFailure;
 	}
 
 	utest::ResultType testBoolConfigFalse(std::ostream& out) {
-		Config cfg = Config::parse("nothing = true\n generic.key = false");
+		Config cfg = Config::parse("nothing = true\n generic{key=false}");
 		return checkValue<bool>(cfg, out, "generic.key", false)? eSuccess : eFailure;
 	}
 
 	utest::ResultType testBoolConfigNo(std::ostream& out) {
-		Config cfg = Config::parse("nothing = yes\n generic.key = no");
+		Config cfg = Config::parse("nothing = yes\n generic{key=no}");
 		return checkValue<bool>(cfg, out, "generic.key", false)? eSuccess : eFailure;
 	}
 
 	utest::ResultType testBoolConfigN(std::ostream& out) {
-		Config cfg = Config::parse("nothing = y\n generic.key = n");
+		Config cfg = Config::parse("nothing = y\n generic{key=n}");
 		return checkValue<bool>(cfg, out, "generic.key", false)? eSuccess : eFailure;
 	}
 

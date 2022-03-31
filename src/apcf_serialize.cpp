@@ -215,7 +215,11 @@ namespace apcf_serialize {
 		std::string r;
 		switch(rawData.type) {
 			case DataType::eNull: { r = "null"; } break;
-			case DataType::eBool: { r = rawData.data.boolValue? "true" : "false"; } break;
+			case DataType::eBool: {
+				r = bool(rules.flags & SerializationRules::eMinimized)?
+					(rawData.data.boolValue? "y" : "n") :
+					(rawData.data.boolValue? "true" : "false");
+			} break;
 			case DataType::eInt: { r = apcf_num::serializeIntNumber(rawData.data.intValue); } break;
 			case DataType::eFloat: {
 				if(std::isfinite(rawData.data.floatValue)) [[likely]] {

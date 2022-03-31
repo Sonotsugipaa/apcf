@@ -180,7 +180,6 @@ namespace apcf_parse {
 				}
 				return true;
 			} else {
-				pd.src.fwdOrEof();
 				return false;
 			}
 		};
