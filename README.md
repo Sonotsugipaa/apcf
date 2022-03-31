@@ -139,7 +139,7 @@ group.name {
 another-key.subkey = 7
 another-key { subkey = 7 }
 
-compact{1=1 2=[3 4[1]]group{22.73=37.22}a=[]}
+minimized{1=1 2=[3 4[1]]group{22.73=37.22}a=[]}
 ```
 
 - No indentation dependent syntax, oh hi Python.

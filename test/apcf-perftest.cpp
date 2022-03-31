@@ -21,7 +21,7 @@ namespace {
 	template<bool pretty, unsigned rootGroups, unsigned depth>
 	const std::string cfgFilePath =
 		"test/.big_autogen_"s +
-		(pretty? "pretty_"s : "compact_"s) +
+		(pretty? "pretty_"s : "minimized_"s) +
 		std::to_string(rootGroups) + "x"s +
 		std::to_string(depth) + ".cfg"s;
 
@@ -199,8 +199,8 @@ int main(int, char**) {
 	auto batch = utest::TestBatch(std::cout);
 	batch
 		.run("Parse/serialize benchmark (pretty, 8x4)", testPerformance<true, 8, 4>)
-		.run("Parse/serialize benchmark (compact, 8x4)", testPerformance<false, 8, 4>)
+		.run("Parse/serialize benchmark (mini, 8x4)", testPerformance<false, 8, 4>)
 		.run("Parse/serialize benchmark (pretty, 20x24)", testPerformance<true, 20, 24>)
-		.run("Parse/serialize benchmark (compact, 20x24)", testPerformance<false, 20, 24>);
+		.run("Parse/serialize benchmark (mini, 20x24)", testPerformance<false, 20, 24>);
 	return batch.failures() == 0? EXIT_SUCCESS : EXIT_FAILURE;
 }

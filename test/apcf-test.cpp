@@ -435,7 +435,7 @@ namespace {
 		return eSuccess;
 	}
 
-	utest::ResultType testSerialFullCompact(std::ostream& out) {
+	utest::ResultType testSerialFullMinimized(std::ostream& out) {
 		Config cfg = Config::parse(genericConfigSrc);
 		constexpr auto expect =
 			"1=1 "
@@ -629,7 +629,7 @@ int main(int, char**) {
 		.RUN_("[parse] Unclosed group", testUnclosedGroup)
 		.RUN_("[parse] Unmatched group closure", testUnmatchedGroupClosure)
 		.RUN_("[serial] Simple serialization (pretty)", testSerialFullPretty)
-		.RUN_("[serial] Simple serialization (compact)", testSerialFullCompact)
+		.RUN_("[serial] Simple serialization (minimized)", testSerialFullMinimized)
 		.RUN_("[serial] Simple serialization (float NaN, infinity)", testSerialNan)
 		.RUN_("[file] Write to file", testFileWrite)
 		.RUN_("[file] Read from file", testFileRead);
