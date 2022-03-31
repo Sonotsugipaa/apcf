@@ -371,109 +371,6 @@ namespace {
 	}
 
 
-	utest::ResultType testSerialFullPretty(std::ostream& out) {
-		Config cfg = Config::parse(genericConfigSrc);
-		constexpr auto expect =
-			"group1 {\n"
-			"  group2 {\n"
-			"    value1 = 3\n"
-			"    value2 = 4\n"
-			"  }\n"
-			"\n"
-			"  group3.value1 = 5\n"
-			"  value1 = 1\n"
-			"  value2 = 2\n"
-			"}\n"
-			"\n"
-			"long.single.line.group.1 {\n"
-			"  2 {\n"
-			"    value1 = 8\n"
-			"    value2 = 9\n"
-			"  }\n"
-			"\n"
-			"  value1 = 6\n"
-			"  value2 = 7\n"
-			"}\n"
-			"\n"
-			"rootvalue-array-one = [\n"
-			"  1\n"
-			"  2.25\n"
-			"  [\n"
-			"    \"3\"\n"
-			"  ] [\n"
-			"    \"4\"\n"
-			"    \"5\"\n"
-			"  ]\n"
-			"]\n"
-			"\n"
-			"rootvalue-array-three = [ ]\n"
-			"\n"
-			"rootvalue-array-two = [ ]\n"
-			"\n"
-			"1 = 1\n"
-			"1 {\n"
-			"  1 = 1.5\n"
-			"  2 = 0.925\n"
-			"}\n"
-			"\n"
-			"rootvalue-float = 1.5\n"
-			"\n"
-			"rootvalue-int = 1\n"
-			"rootvalue-int {\n"
-			"  negative = -1\n"
-			"  positive = 1\n"
-			"}\n"
-			"\n"
-			"rootvalue-string = \"str \\\"literal\\\"\"\n";
-		apcf::SerializationRules rules = { };
-		rules.flags = apcf::SerializationRules::eNull;
-		rules.indentationSize = 2;
-		rules.maxInlineArrayLength = 7;
-		auto serialized = cfg.serialize(rules);
-		if(serialized != expect) {
-			out << "// The serialized config is probably incorrect.\n";
-			out << serialized << std::endl;
-			return eNeutral;
-		}
-		return eSuccess;
-	}
-
-	utest::ResultType testSerialFullMinimized(std::ostream& out) {
-		Config cfg = Config::parse(genericConfigSrc);
-		constexpr auto expect =
-			"1=1 "
-			"1{1=1.5 2=0.925}"
-			"group1{"
-			"group2{value1=3 value2=4}"
-			"group3.value1=5 "
-			"value1=1 "
-			"value2=2"
-			"}"
-			"long.single.line.group.1{"
-			"2{value1=8 value2=9"
-			"}"
-			"value1=6 "
-			"value2=7"
-			"}"
-			"rootvalue-array-one=[1 2.25[\"3\"][\"4\" \"5\"]]"
-			"rootvalue-array-three=[]"
-			"rootvalue-array-two=[]"
-			"rootvalue-float=1.5 "
-			"rootvalue-int=1 "
-			"rootvalue-int{negative=-1 positive=1}"
-			"rootvalue-string=\"str \\\"literal\\\"\"";
-		apcf::SerializationRules rules = { };
-		rules.flags = apcf::SerializationRules::eMinimized;
-		auto serialized = cfg.serialize(rules);
-		if(serialized != expect) {
-			out << "// The serialized config is probably incorrect.\n";
-			out << serialized << std::endl;
-			return eNeutral;
-		}
-		return eSuccess;
-	}
-
-
 	utest::ResultType testSerialNan(std::ostream& out) {
 		Config cfg;
 		bool r = true;
@@ -631,8 +528,6 @@ int main(int, char**) {
 		.RUN_("[parse] Groups", testGroups)
 		.RUN_("[parse] Unclosed group", testUnclosedGroup)
 		.RUN_("[parse] Unmatched group closure", testUnmatchedGroupClosure)
-		.RUN_("[serial] Simple serialization (pretty)", testSerialFullPretty)
-		.RUN_("[serial] Simple serialization (minimized)", testSerialFullMinimized)
 		.RUN_("[serial] Simple serialization (float NaN, infinity)", testSerialNan)
 		.RUN_("[file] Write to file", testFileWrite)
 		.RUN_("[file] Read from file", testFileRead);

@@ -314,7 +314,7 @@ namespace apcf {
 		std::map<Key, RawData> data_;
 
 	public:
-		static Config parse(const std::string& str) { return parse(std::string(str.data(), str.size())); }
+		static Config parse(const std::string& str) { return parse(str.data(), str.size()); }
 		static Config parse(const char* cStr);
 		static Config parse(const char* charSeqPtr, size_t length);
 		static Config read(io::Reader&);

@@ -15,6 +15,9 @@ target_link_libraries(UnitTest-apcf test-tools apcf)
 add_executable(UnitTest-perf apcf-perftest.cpp)
 target_link_libraries(UnitTest-perf test-tools apcf)
 
+add_executable(UnitTest-fmt apcf-fmt.cpp)
+target_link_libraries(UnitTest-fmt test-tools apcf)
+
 
 configure_file(
 	"${PROJECT_SOURCE_DIR}/test/run-tests.sh"
