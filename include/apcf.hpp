@@ -203,6 +203,7 @@ namespace apcf {
 		};
 		const ConfigHierarchy* hierarchy = nullptr;
 		size_t indentationSize = 3;
+		size_t maxInlineArrayLength = 32;
 		unsigned flags = 0;
 	};
 

@@ -273,6 +273,8 @@ namespace apcf_serialize {
 	struct SerializationState {
 		std::string indentation;
 		unsigned indentationLevel;
+		bool lastArrayWasInline : 1;
+		bool arrayNoInlineOverride : 1;
 	};
 
 
@@ -290,7 +292,7 @@ namespace apcf_serialize {
 	void popIndent(apcf::SerializationRules, SerializationState&);
 
 	void serializeArray(
-			apcf::SerializationRules rules, SerializationState state,
+			apcf::SerializationRules rules, SerializationState& state,
 			const apcf::RawArray& data, std::string& dst
 	);
 

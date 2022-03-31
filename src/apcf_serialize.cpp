@@ -18,7 +18,7 @@ namespace {
 		for(const auto& childKey : parenthood) {
 			auto autocompKey = hierarchy.autocomplete(childKey);
 			auto child = map.find(autocompKey);
-			if(child == map.end()) {
+			if(child == map.end() || ! hierarchy.getSubkeys(autocompKey).empty()) {
 				groupsDst.insert(autocompKey);
 			} else {
 				switch(child->second.type) {
@@ -28,6 +28,52 @@ namespace {
 			}
 		}
 		assert(parenthood.empty() == (groupsDst.empty() && arraysDst.empty() && singleEntriesDst.empty()));
+	}
+
+
+	size_t guessElemLength(const apcf::RawData&, std::map<const apcf::RawData*, std::string>& strCache);
+
+	size_t guessInlineArrayLength(const apcf::RawArray& rawArray, std::map<const apcf::RawData*, std::string>& strCache) {
+		using apcf::DataType;
+		size_t sum = 4;
+		if(rawArray.size() > 0) {
+			sum += guessElemLength(rawArray[0], strCache);
+		}
+		for(size_t i=1; i < rawArray.size(); ++i) {
+			sum += 1 + guessElemLength(rawArray[i], strCache);
+		}
+		return sum;
+	}
+
+
+	size_t guessElemLength(const apcf::RawData& rawData, std::map<const apcf::RawData*, std::string>& strCache) {
+		using apcf::DataType;
+		std::map<const apcf::RawData*, std::string>::const_iterator serialized;
+		#define MK_SER_ serialized = strCache.insert_or_assign(&rawData, rawData.serialize()).first; return serialized->second.size();
+		switch(rawData.type) {
+			case DataType::eBool: return rawData.data.boolValue? 4 : 5;
+			case DataType::eFloat: MK_SER_
+			case DataType::eInt: MK_SER_
+			case DataType::eString: return 2 + rawData.data.stringValue.length();
+			case DataType::eArray: return guessInlineArrayLength(rawData.data.arrayValue, strCache);
+			case DataType::eNull: assert(false && "This state should be impossible to reach"); return 0;
+			default: assert(false && "Invalid enum value"); return 0;
+		}
+		#undef MK_SER_
+	}
+
+
+	/** Not to be mistaken with `apcf_serialize::serializeLineEntry`. */
+	void serializeEntry(
+			apcf::SerializationRules rules,
+			apcf_serialize::SerializationState& state,
+			const apcf::RawData& data, std::string& dst
+	) {
+		if(data.type == apcf::DataType::eArray) {
+			serializeArray(rules, state, data.data.arrayValue, dst);
+		} else {
+			dst.append(data.serialize(rules, state.indentationLevel));
+		}
 	}
 
 }
@@ -73,34 +119,61 @@ namespace apcf_serialize {
 
 
 	void serializeArray(
-			apcf::SerializationRules rules, SerializationState state,
+			apcf::SerializationRules rules, SerializationState& state,
 			const apcf::RawArray& data, std::string& dst
 	) {
+		#define APPEND_CACHED_(DATA_) { \
+			auto dataPtr = DATA_; \
+			auto found = strCache.find(dataPtr); \
+			if(found != strCache.end()) { \
+				dst.append(found->second); \
+			} else { \
+				serializeEntry(rules, state, *dataPtr, dst); \
+			} \
+		}
+
 		using Rules = apcf::SerializationRules;
+
 		dst.push_back(GRAMMAR_ARRAY_BEGIN);
+
 		if(! (rules.flags & Rules::eMinimized)) {
-			if(rules.flags & Rules::eForceInlineArrays) {
+			std::map<const apcf::RawData*, std::string> strCache;
+			auto inlineArrayLen = guessInlineArrayLength(data, strCache);
+			bool inlineArrayLenFits = inlineArrayLen <= rules.maxInlineArrayLength;
+
+			if(
+				(inlineArrayLenFits && ! state.arrayNoInlineOverride) ||
+				(rules.flags & Rules::eForceInlineArrays)
+			) {
 				dst.push_back(' ');
 				if(data.size() > 0) {
-					dst.append(data.data()->serialize(rules, state.indentationLevel)); }
+					APPEND_CACHED_(data.data()); }
 				for(size_t i=1; i < data.size(); ++i) {
 					dst.push_back(' ');
-					dst.append(data[i].serialize(rules, state.indentationLevel));
+					APPEND_CACHED_(&data[i]);
 				}
 				dst.push_back(' ');
+				state.lastArrayWasInline = true;
 			} else {
 				if(data.size()) {
 					pushIndent(rules, state);
 					#define APPEND_VAL_LN_(IDX_) { \
+						auto& dataIdx = data[IDX_]; \
 						dst.push_back(GRAMMAR_NEWLINE); \
 						dst.append(state.indentation); \
-						dst.append(data[IDX_].serialize(rules, state.indentationLevel)); \
+						APPEND_CACHED_(&dataIdx); \
 					}
 					if(data.size() > 0) APPEND_VAL_LN_(0)
 					for(size_t i=1; i < data.size(); ++i) {
-						if(data[i-1].type == data[i].type && data[i].type == apcf::DataType::eArray) {
+						if(
+							data[i-1].type == data[i].type &&
+							data[i].type == apcf::DataType::eArray &&
+							! (state.lastArrayWasInline)
+						) {
+							state.arrayNoInlineOverride = true;
 							dst.push_back(' ');
-							dst.append(data[i].serialize(rules, state.indentationLevel));
+							APPEND_CACHED_(&data[i]);
+							state.arrayNoInlineOverride = false;
 						} else {
 							APPEND_VAL_LN_(i)
 						}
@@ -108,14 +181,15 @@ namespace apcf_serialize {
 					#undef APPEND_VAL_LN_
 					popIndent(rules, state);
 					dst.push_back(GRAMMAR_NEWLINE);
-						dst.append(state.indentation);
+					dst.append(state.indentation);
 				} else {
 					dst.push_back(' ');
 				}
+				state.lastArrayWasInline = false;
 			}
 		} else {
 			if(data.size() > 0) {
-				dst.append(data.data()->serialize(rules, state.indentationLevel)); }
+				serializeEntry(rules, state, data[0], dst); }
 			for(size_t i=1; i < data.size(); ++i) {
 				if(
 					(data[i-1].type != apcf::DataType::eArray) &&
@@ -123,10 +197,12 @@ namespace apcf_serialize {
 				) {
 					dst.push_back(' ');
 				}
-				dst.append(data[i].serialize(rules, state.indentationLevel));
+				serializeEntry(rules, state, data[i], dst);
 			}
 		}
+
 		dst.push_back(GRAMMAR_ARRAY_END);
+		#undef APPEND_CACHED_
 	}
 
 
@@ -199,10 +275,9 @@ namespace apcf_serialize {
 				(sd.rules.flags & apcf::SerializationRules::eForceInlineArrays)
 			);
 		constexpr auto writeValue = [](SerializeData& sd, const apcf::RawData& value) {
-			std::string serializedValue = value.serialize(
-				sd.rules,
-				sd.state.indentationLevel );
-			sd.dst.writeChars(serializedValue);
+			std::string serialized; serialized.reserve(16); // The pre-allocation is arbitrary
+			serializeEntry(sd.rules, sd.state, value, serialized);
+			sd.dst.writeChars(serialized);
 		};
 		assert(apcf::isKeyValid(key));
 		if(! (sd.rules.flags & apcf::SerializationRules::eMinimized)) {
@@ -414,7 +489,9 @@ namespace apcf {
 			*this, rules,
 			{
 				.indentation = mkIndent(rules, indentation),
-				.indentationLevel = indentation
+				.indentationLevel = indentation,
+				.lastArrayWasInline = false,
+				.arrayNoInlineOverride = false
 			} );
 	}
 

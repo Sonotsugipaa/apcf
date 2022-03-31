@@ -34,10 +34,12 @@ namespace {
 		"rootvalue-float=1.5\n"
 		"rootvalue-string = \"str \\\"literal\\\"\"\n"
 		"rootvalue-array-one = [\n"
-		"  1  2.25  [  \"3\" ][\"4\" \"5\"  ]\n"
+		"  1  2.25  [  \"3\" \"4\"][ \"5\"  ] [ \"6\"][\"7\" \"8\"]\n"
 		"]\n"
 		"rootvalue-array-two = [ ]\n"
 		"rootvalue-array-three = [ ]\n"
+		"rootvalue-array-four = [ \"1\" ]\n"
+		"rootvalue-array-five = [ \"2\" \"3\" ]\n"
 		"group1 {\n"
 		"  value1 = 1\n"
 		"  value2 = 2\n"
@@ -426,6 +428,7 @@ namespace {
 		apcf::SerializationRules rules = { };
 		rules.flags = apcf::SerializationRules::eNull;
 		rules.indentationSize = 2;
+		rules.maxInlineArrayLength = 7;
 		auto serialized = cfg.serialize(rules);
 		if(serialized != expect) {
 			out << "// The serialized config is probably incorrect.\n";
