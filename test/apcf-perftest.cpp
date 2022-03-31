@@ -52,8 +52,9 @@ namespace {
 
 	apcf::RawData genStr() {
 		constexpr unsigned length = 32;
-		constexpr unsigned base = 62;
+		constexpr unsigned base = 65;
 		constexpr const char digits[] =
+			"\n\\\""
 			"0123456789"
 			"abcdefghijklmnopqrstuvwxyz"
 			"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
