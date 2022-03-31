@@ -131,18 +131,7 @@ namespace apcf {
 		MK_TYPE_STR_(eArray, "array")
 	#undef MK_TYPE_STR_
 
-	constexpr std::string_view dataTypeStringOf(DataType type) {
-		#define MK_CASE_(ENUM_) case DataType::ENUM_: return dataTypeString<DataType::ENUM_>;
-		switch(type) {
-			MK_CASE_(eNull);
-			MK_CASE_(eBool);
-			MK_CASE_(eInt);
-			MK_CASE_(eFloat);
-			MK_CASE_(eString);
-			MK_CASE_(eArray);
-			default: return "?";
-		}
-	}
+	std::string_view dataTypeStringOf(DataType);
 
 
 	using int_t = long long;

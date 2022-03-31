@@ -19,7 +19,7 @@
 # Set warning levels
 
 	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-		add_compile_options(-Wall -Wextra -Wpedantic)
+		add_compile_options(-Wall -Wextra -Wpedantic -Winline)
 	elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 		# add_compile_options(\\Wall) # How...?
 	else()

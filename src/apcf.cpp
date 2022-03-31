@@ -7,6 +7,20 @@
 
 namespace apcf {
 
+	std::string_view dataTypeStringOf(DataType type) {
+		#define MK_CASE_(ENUM_) case DataType::ENUM_: return dataTypeString<DataType::ENUM_>;
+		switch(type) {
+			MK_CASE_(eNull);
+			MK_CASE_(eBool);
+			MK_CASE_(eInt);
+			MK_CASE_(eFloat);
+			MK_CASE_(eString);
+			MK_CASE_(eArray);
+			default: return "?";
+		}
+	}
+
+
 	bool isKeyValid(const std::string& str) {
 		assert(apcf_util::findKeyError(str) <= str.size());
 		return apcf_util::findKeyError(str) == str.size();
