@@ -138,7 +138,7 @@ namespace {
 			<< "Parsing " << cfgRd.entryCount()
 			<< " entries took " << endTime << "us" << std::endl;
 		for(const auto& wrEntry : cfgWr) {
-			apcf::SerializationRules rules = { };  rules.flags = apcf::SerializationRules::eCompactArrays;
+			apcf::SerializationRules rules = { };  rules.flags = apcf::SerializationRules::eForceInlineArrays;
 			const auto& rdValueOpt = cfgRd.get(wrEntry.first);
 			if(! rdValueOpt.has_value()) {
 				out << "Config mismatch: failed to get existing key `" << wrEntry.first << "`" << std::endl;
@@ -169,9 +169,9 @@ namespace {
 		Rules rules = { };
 		rules.indentationSize = 1;
 		if constexpr(pretty) {
-			rules.flags = Rules::eIndentWithTabs | Rules::eCompactArrays;
+			rules.flags = Rules::eIndentWithTabs | Rules::eForceInlineArrays;
 		} else {
-			rules.flags = Rules::eIndentWithTabs | Rules::eCompactArrays | Rules::eCompact;
+			rules.flags = Rules::eIndentWithTabs | Rules::eForceInlineArrays | Rules::eMinimized;
 		}
 		cfgWr.write(std::ofstream(cfgFilePath<pretty, rootGroups, depth>), rules);
 		auto endTime = (nowUs() - begTime);

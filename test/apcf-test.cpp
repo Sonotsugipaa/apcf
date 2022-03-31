@@ -460,7 +460,7 @@ namespace {
 			"rootvalue-int{negative=-1 positive=1}"
 			"rootvalue-string=\"str \\\"literal\\\"\"";
 		apcf::SerializationRules rules = { };
-		rules.flags = apcf::SerializationRules::eCompact;
+		rules.flags = apcf::SerializationRules::eMinimized;
 		auto serialized = cfg.serialize(rules);
 		if(serialized != expect) {
 			out << "// The serialized config is probably incorrect.\n";

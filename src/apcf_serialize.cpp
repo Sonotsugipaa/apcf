@@ -78,8 +78,8 @@ namespace apcf_serialize {
 	) {
 		using Rules = apcf::SerializationRules;
 		dst.push_back(GRAMMAR_ARRAY_BEGIN);
-		if(! (rules.flags & Rules::eCompact)) {
-			if(rules.flags & Rules::eCompactArrays) {
+		if(! (rules.flags & Rules::eMinimized)) {
+			if(rules.flags & Rules::eForceInlineArrays) {
 				dst.push_back(' ');
 				if(data.size() > 0) {
 					dst.append(data.data()->serialize(rules, state.indentationLevel)); }
@@ -196,7 +196,7 @@ namespace apcf_serialize {
 			thisLineIsArray &&
 			! (
 				(entryValue.data.arrayValue.size() == 0) ||
-				(sd.rules.flags & apcf::SerializationRules::eCompactArrays)
+				(sd.rules.flags & apcf::SerializationRules::eForceInlineArrays)
 			);
 		constexpr auto writeValue = [](SerializeData& sd, const apcf::RawData& value) {
 			std::string serializedValue = value.serialize(
@@ -205,12 +205,15 @@ namespace apcf_serialize {
 			sd.dst.writeChars(serializedValue);
 		};
 		assert(apcf::isKeyValid(key));
-		if(! (sd.rules.flags & apcf::SerializationRules::eCompact)) {
+		if(! (sd.rules.flags & apcf::SerializationRules::eMinimized)) {
 			if(
-				getFlags<uint_fast8_t>(sd.lastLineFlags,
-					lineFlagsArrayEndBit | lineFlagsGroupEndBit | lineFlagsGroupEntryBit
-				) ||
-				doSpaceArray
+				! (sd.rules.flags & apcf::SerializationRules::eExpandKeys) &&
+				(
+					getFlags<uint_fast8_t>(sd.lastLineFlags,
+						lineFlagsArrayEndBit | lineFlagsGroupEndBit | lineFlagsGroupEntryBit
+					) ||
+					doSpaceArray
+				)
 			) {
 				sd.dst.writeChar('\n');
 			}
@@ -241,7 +244,7 @@ namespace apcf_serialize {
 			SerializeData& sd,
 			const apcf::Key& key
 	) {
-		if(! (sd.rules.flags & apcf::SerializationRules::eCompact)) {
+		if(! (sd.rules.flags & apcf::SerializationRules::eMinimized)) {
 			if(
 				getFlags<uint_fast8_t>(sd.lastLineFlags,
 					lineFlagsGroupEndBit | lineFlagsArrayEndBit | lineFlagsOwnEntryBit
@@ -275,7 +278,7 @@ namespace apcf_serialize {
 	void serializeLineGroupEnd(
 			SerializeData& sd
 	) {
-		if(! (sd.rules.flags & apcf::SerializationRules::eCompact)) {
+		if(! (sd.rules.flags & apcf::SerializationRules::eMinimized)) {
 			popIndent(sd.rules, sd.state);
 			sd.dst.writeChars(sd.state.indentation);
 			sd.dst.writeChar(GRAMMAR_GROUP_END);
@@ -328,7 +331,7 @@ namespace apcf_serialize {
 					}
 				} else {
 					#define SERIALIZE_(SET_) { for(const auto& childKey : SET_) serializeHierarchy(state, childKey, std::move(key)); }
-					if(! (state.sd->rules.flags & apcf::SerializationRules::eCompact)) {
+					if(! (state.sd->rules.flags & apcf::SerializationRules::eMinimized)) {
 						std::set<Key> groups;
 						std::set<Key> arrays;
 						std::set<Key> singleEntries;
@@ -380,7 +383,7 @@ namespace apcf_serialize {
 			const std::set<Key>& subkeys = hierarchyPtr->getSubkeys({ });
 
 			#define SERIALIZE_(SET_) { for(const auto& rootChild : SET_) serializeHierarchy(saParams, rootChild, { }); }
-			if(! (sd.rules.flags & Rules::eCompact)) {
+			if(! (sd.rules.flags & (Rules::eMinimized | Rules::eExpandKeys))) {
 				std::set<Key> groups;
 				std::set<Key> arrays;
 				std::set<Key> singleEntries;
