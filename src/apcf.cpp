@@ -1,7 +1,14 @@
 #include "apcf_.hpp"
 
+#include <apcf.h>
+
 #include <cassert>
 #include <cstring>
+
+
+
+static_assert(std::is_same_v<apcf::int_t, apcf_int_t>);
+static_assert(std::is_same_v<apcf::float_t, apcf_float_t>);
 
 
 
