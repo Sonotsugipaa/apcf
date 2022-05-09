@@ -225,6 +225,9 @@ namespace apcf_serialize {
 			case DataType::eFloat: {
 				if(std::isfinite(rawData.data.floatValue)) [[likely]] {
 					r = apcf_num::serializeFloatNumber(rawData.data.floatValue);
+					if(! (rules.flags & apcf::SerializationRules::ePreciseFloat)) [[unlikely]] {
+						apcf_num::roundFloatRep(r, 9); // The "digits" argument is arbitrary
+					}
 				} else {
 					if(rules.flags & apcf::SerializationRules::eFloatNoFail) {
 						if(std::isinf(rawData.data.floatValue)) {

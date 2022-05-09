@@ -109,6 +109,8 @@ namespace apcf_num {
 	std::string serializeIntNumber(apcf::int_t);
 	std::string serializeFloatNumber(apcf::float_t);
 
+	bool roundFloatRep(std::string& str, unsigned digits);
+
 }
 
 

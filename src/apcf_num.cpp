@@ -186,4 +186,51 @@ namespace apcf_num {
 		return r;
 	}
 
+
+	bool roundFloatRep(std::string& str, unsigned digits) {
+		apcf::int_t iterPos;
+		apcf::int_t endPos = str.size();
+		apcf::int_t trimPos;
+		apcf::int_t prefixLen;
+
+		apcf::int_t base = baseOf(str.begin(), str.end(), &prefixLen);
+		char baseMaxChar = digitToChar(base-1);
+		iterPos = prefixLen;
+
+		// Find the first fractional digit
+		while(iterPos < endPos && str[iterPos] != '.') ++ iterPos;
+		if(iterPos >= endPos) return false; // Not a fractional number representation, abort
+		assert(str[iterPos] == '.');
+		++ iterPos;
+
+		// Look for a 0 or a <baseMaxChar>;
+		// The function may return inside this loop
+		while(iterPos < endPos) {
+			char repeatChar = str[iterPos];
+			if(repeatChar == '0' || repeatChar == baseMaxChar) {
+				// Look for <digits-1> repeated characters
+				size_t repeatCharCount = 1;
+				trimPos = iterPos;
+				while(repeatCharCount < digits && iterPos != endPos && str[iterPos] == repeatChar) {
+					++ repeatCharCount;
+					++ iterPos;
+				}
+				assert(repeatCharCount <= digits);
+
+				if(repeatCharCount >= digits) {
+					// If <digits> repeated chars have been found, trim the string
+					str.resize(trimPos);
+					// If the rounded number is integer, append a zero
+					assert(str.size() != 0); // Wouldn't make sense
+					if(str.back() == '.') str.push_back('0');
+					/* TODO: round up, if the char is <baseMaxChar> */
+					return true;
+				}
+			}
+			++ iterPos;
+		}
+
+		return false;
+	}
+
 }

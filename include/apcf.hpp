@@ -191,15 +191,16 @@ namespace apcf {
 
 	struct SerializationRules {
 		enum FlagBits : unsigned {
-			eNull              = 0b000000,
-			eExpandKeys        = 0b000010,
-			eIndentWithTabs    = 0b000100,
-			eForceInlineArrays = 0b001000,
-			eFloatNoFail       = 0b010000,
-			eMinimized         = 0b100000,
-			ePretty        [[deprecated("Deprecated in favor of `eMinimized`"      " - has no effect")]]       = 0b000001,
-			eCompactArrays [[deprecated("Deprecated in favor of `eForceInlineArrays` - has the same effect")]] = 0b001000,
-			eCompact       [[deprecated("Deprecated in favor of `eMinimized`"      " - has the same effect")]] = 0b100000
+			eNull              = 0b0000000,
+			eExpandKeys        = 0b0000010,
+			eIndentWithTabs    = 0b0000100,
+			eForceInlineArrays = 0b0001000,
+			eFloatNoFail       = 0b0010000,
+			eMinimized         = 0b0100000,
+			ePreciseFloat      = 0b1000000,
+			ePretty        [[deprecated("Deprecated in favor of `eMinimized`"      " - has no effect")]]       = 0b0000001,
+			eCompactArrays [[deprecated("Deprecated in favor of `eForceInlineArrays` - has the same effect")]] = 0b0001000,
+			eCompact       [[deprecated("Deprecated in favor of `eMinimized`"      " - has the same effect")]] = 0b0100000
 		};
 		const ConfigHierarchy* hierarchy = nullptr;
 		size_t indentationSize = 3;

@@ -43,36 +43,36 @@ namespace {
 		"  4 = 10\n" "  4n = -10\n" "  4p = 10\n"
 		"}\n" };
 
-	// Some of the following lines are temporarily commented out,
-	// due to floating point "errors" that will
-	// probably be addressed in the future
 	constexpr const char* cfgFloatValues[3] = {
 		"floats {\n"
 		"  1 =  0.0\n"    "  1p = +0.0\n"    "  1n = -0.0\n"
-		// "  2 =  0.1\n"    "  2p = +0.1\n"    "  2n = -0.1\n"
-		// "  3 =  0.2625\n" "  3p = +0.2625\n" "  3n = -0.2625\n"
+		"  2 =  0.1\n"    "  2p = +0.1\n"    "  2n = -0.1\n"
+		"  3 =  0.2625\n" "  3p = +0.2625\n" "  3n = -0.2625\n"
 		"  4 =  7.5\n"    "  4p = +7.5\n"    "  4n = -7.5\n"
-		// "  5 =  1.1\n"    "  5p = +1.1\n"    "  5n = -1.1\n"
-		// "  6 =  1.2625\n" "  6p = +1.2625\n" "  6n = -1.2625\n"
+		"  5 =  1.1\n"    "  5p = +1.1\n"    "  5n = -1.1\n"
+		"  6 =  1.2625\n" "  6p = +1.2625\n" "  6n = -1.2625\n"
 		"  7 =  7.5\n"    "  7p = +7.5\n"    "  7n = -7.5\n"
+		"  8 =  11.0\n"   "  8p = +11.0\n"   "  8n = -11.0000000001\n"
 		"}\n", // ------------- // -------------
 		"floats{"
 		"1=0.0 1n=0.0 1p=0.0"           " "
-		// "2=0.1 2p=0.1 2n=-0.1"          " "
-		// "3=0.2625 3p=0.2625 3n=-0.2625" " "
+		"2=0.1 2n=-0.1 2p=0.1"          " "
+		"3=0.2625 3n=-0.2625 3p=0.2625" " "
 		"4=7.5 4n=-7.5 4p=7.5"          " "
-		// "5=1.1 5p=1.1 5n=-1.1"          " "
-		// "6=1.2625 6p=1.2625 6n=-1.2625" " "
-		"7=7.5 7n=-7.5 7p=7.5"
+		"5=1.1 5n=-1.1 5p=1.1"          " "
+		"6=1.2625 6n=-1.2625 6p=1.2625" " "
+		"7=7.5 7n=-7.5 7p=7.5"          " "
+		"8=11.0 8n=-11.0 8p=11.0"
 		"}", // ------------- // -------------
 		"floats {\n"
-		"  1 = 0.0\n"    "  1n = 0.0\n"    "  1p = 0.0\n"
-		// "  2 = 0.1\n"    "  2p = 0.1\n"    "  2n = -0.1\n"
-		// "  3 = 0.2625\n" "  3p = 0.2625\n" "  3n = -0.2625\n"
+		"  1 = 0.0\n"    "  1n = 0.0\n"     "  1p = 0.0\n"
+		"  2 = 0.1\n"    "  2n = -0.1\n"    "  2p = 0.1\n"
+		"  3 = 0.2625\n" "  3n = -0.2625\n" "  3p = 0.2625\n"
 		"  4 = 7.5\n"    "  4n = -7.5\n"    "  4p = 7.5\n"
-		// "  5 = 1.1\n"    "  5p = 1.1\n"    "  5n = -1.1\n"
-		// "  6 = 1.2625\n" "  6p = 1.2625\n" "  6n = -1.2625\n"
+		"  5 = 1.1\n"    "  5n = -1.1\n"    "  5p = 1.1\n"
+		"  6 = 1.2625\n" "  6n = -1.2625\n" "  6p = 1.2625\n"
 		"  7 = 7.5\n"    "  7n = -7.5\n"    "  7p = 7.5\n"
+		"  8 = 11.0\n"   "  8n = -11.0\n"   "  8p = 11.0\n"
 		"}\n" };
 
 	constexpr const char* cfgStringValues[3] = {
@@ -263,7 +263,7 @@ int main(int, char**) {
 	rules.hierarchy = nullptr;
 	rules.indentationSize = 2;
 	rules.maxInlineArrayLength = 80;
-	rules.flags = apcf::SerializationRules::eNull;
+	rules.flags = 0;
 	apcf::SerializationRules rulesMin = rules;
 	rulesMin.flags = apcf::SerializationRules::eMinimized;
 	batch
