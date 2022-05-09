@@ -5,6 +5,48 @@
 
 
 
+namespace {
+
+	void numStrIncLastDigit(std::string& str, char baseMaxChar) {
+		char c = str.back();
+
+		// Carry
+		while(c == baseMaxChar) {
+			str.pop_back();
+			assert(! str.empty()); // There must be at least one '.'
+			c = str.back();
+		}
+
+		if(c == '.') {
+			if(str.size() == 1) {
+				str = "1.0";
+			} else {
+				str.push_back('0');
+
+				// Carry to the integer part
+				std::make_signed_t<size_t> cursor = str.size() - 3;
+				while((cursor >= 0) && (c = str[cursor]) == baseMaxChar) {
+					str[cursor] = '0';
+					-- cursor;
+				}
+				if(cursor == -1) {
+					str.insert(str.begin(), '1');
+				} else if(str[cursor] == '+' || str[cursor] == '-') {
+					str.insert(str.begin() + 1, '1');
+				} else {
+					assert(cursor >= 0);
+					str[cursor] = apcf_num::digitToChar(apcf::int_t(1) + apcf_num::charToDigit(c));
+				}
+			}
+		} else {
+			str.back() = apcf_num::digitToChar(apcf::int_t(1) + apcf_num::charToDigit(c));
+		}
+	}
+
+}
+
+
+
 namespace apcf_num {
 
 	apcf::int_t baseOf(
@@ -222,8 +264,11 @@ namespace apcf_num {
 					str.resize(trimPos);
 					// If the rounded number is integer, append a zero
 					assert(str.size() != 0); // Wouldn't make sense
-					if(str.back() == '.') str.push_back('0');
-					/* TODO: round up, if the char is <baseMaxChar> */
+					if(repeatChar == '0') {
+						if(str.back() == '.') str.push_back('0');
+					} else {
+						numStrIncLastDigit(str, baseMaxChar);
+					}
 					return true;
 				}
 			}
