@@ -44,16 +44,17 @@ namespace apcf_num {
 			std::string::const_iterator strBeg,
 			std::string::const_iterator strEnd,
 			apcf::int_t base,
-			apcf::int_t* dst
+			apcf::int_t* dstIntPart,
+			bool* dstNeg
 	) {
 		size_t charsParsed = 0;
-		*dst = 0;
+		*dstIntPart = 0;
 		if(strBeg != strEnd) {
-			apcf::int_t signMul = 1;
+			*dstNeg = false;
 			if(*strBeg == '-') {
 				charsParsed = 1;
 				++ strBeg;
-				signMul = -1;
+				*dstNeg = true;
 			} else
 			if(*strBeg == '+') {
 				charsParsed = 1;
@@ -64,11 +65,11 @@ namespace apcf_num {
 				if(digit >= base) {
 					break;
 				}
-				*dst = (*dst * base) + digit;
+				*dstIntPart = (*dstIntPart * base) + digit;
 				++ charsParsed;
 				++ strBeg;
 			} while(strBeg != strEnd);
-			*dst *= signMul;
+			*dstIntPart *= *dstNeg? apcf::int_t(-1) : apcf::int_t(1);
 		}
 		return charsParsed;
 	}
@@ -104,6 +105,7 @@ namespace apcf_num {
 	) {
 		apcf::int_t intPart;
 		std::string::const_iterator strCursor = strBeg;
+		bool neg;
 
 		apcf::int_t base;
 		{
@@ -111,7 +113,7 @@ namespace apcf_num {
 			base = baseOf(strCursor, strEnd, &basePrefixLen);
 			strCursor += basePrefixLen;
 		}
-		size_t parsedChars = parseNumberInt(strCursor, strEnd, base, &intPart);
+		size_t parsedChars = parseNumberInt(strCursor, strEnd, base, &intPart, &neg);
 
 		strCursor += parsedChars;
 		if(strCursor == strEnd || *strCursor != '.') {
@@ -121,6 +123,7 @@ namespace apcf_num {
 			++ strCursor;
 			if(strCursor != strEnd) {
 				strCursor += parseNumberFrc(strCursor, strEnd, base, &frcPart);
+				frcPart *= (neg)? apcf::float_t(-1.0) : apcf::float_t(+1.0);
 				*dst = apcf::RawData(apcf::float_t(intPart) + frcPart);
 			} else {
 				-- strCursor;
@@ -163,11 +166,14 @@ namespace apcf_num {
 		if(n > std::numeric_limits<apcf::int_t>::max()) n = std::numeric_limits<apcf::int_t>::max() / 2;
 		if(n < std::numeric_limits<apcf::int_t>::min()) n = std::numeric_limits<apcf::int_t>::min() / 2;
 		apcf::int_t nInt = n;
-		std::string r = serializeIntNumber(nInt);
+		std::string r;
+		r.reserve(16);
 		if(n < 0) {
+			r.push_back('-');
 			n = -n;
 			nInt = n;
 		}
+		r.append(serializeIntNumber(nInt));
 		n -= nInt;
 		r.push_back('.');
 		do {

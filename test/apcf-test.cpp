@@ -26,7 +26,9 @@ namespace {
 
 	constexpr const char* genericConfigSrc =
 		"1 = 1\n"
-		"1.1 = 1.5\n"
+		"1.1 = 7.5\n"
+		"1.1p = +7.5\n"
+		"1.1n = -7.5\n"
 		"1.2 = 0.925\n"
 		"rootvalue-int = 1\n"
 		"rootvalue-int.negative = -1\n"
