@@ -2,7 +2,7 @@
 
 	cmake_minimum_required(VERSION 3.20)
 	project(APCF
-		VERSION "0.3.1"
+		VERSION "0.3.2"
 		DESCRIPTION "Almost Plaintext Configuration Format library, designed to be user friendly.")
 
 
