@@ -5,6 +5,48 @@
 
 
 
+namespace {
+
+	void numStrIncLastDigit(std::string& str, char baseMaxChar) {
+		char c = str.back();
+
+		// Carry
+		while(c == baseMaxChar) {
+			str.pop_back();
+			assert(! str.empty()); // There must be at least one '.'
+			c = str.back();
+		}
+
+		if(c == '.') {
+			if(str.size() == 1) {
+				str = "1.0";
+			} else {
+				str.push_back('0');
+
+				// Carry to the integer part
+				std::make_signed_t<size_t> cursor = str.size() - 3;
+				while((cursor >= 0) && (c = str[cursor]) == baseMaxChar) {
+					str[cursor] = '0';
+					-- cursor;
+				}
+				if(cursor == -1) {
+					str.insert(str.begin(), '1');
+				} else if(str[cursor] == '+' || str[cursor] == '-') {
+					str.insert(str.begin() + 1, '1');
+				} else {
+					assert(cursor >= 0);
+					str[cursor] = apcf_num::digitToChar(apcf::int_t(1) + apcf_num::charToDigit(c));
+				}
+			}
+		} else {
+			str.back() = apcf_num::digitToChar(apcf::int_t(1) + apcf_num::charToDigit(c));
+		}
+	}
+
+}
+
+
+
 namespace apcf_num {
 
 	apcf::int_t baseOf(
@@ -184,6 +226,56 @@ namespace apcf_num {
 			n -= nInt;
 		} while(n > 0);
 		return r;
+	}
+
+
+	bool roundFloatRep(std::string& str, unsigned digits) {
+		apcf::int_t iterPos;
+		apcf::int_t endPos = str.size();
+		apcf::int_t trimPos;
+		apcf::int_t prefixLen;
+
+		apcf::int_t base = baseOf(str.begin(), str.end(), &prefixLen);
+		char baseMaxChar = digitToChar(base-1);
+		iterPos = prefixLen;
+
+		// Find the first fractional digit
+		while(iterPos < endPos && str[iterPos] != '.') ++ iterPos;
+		if(iterPos >= endPos) return false; // Not a fractional number representation, abort
+		assert(str[iterPos] == '.');
+		++ iterPos;
+
+		// Look for a 0 or a <baseMaxChar>;
+		// The function may return inside this loop
+		while(iterPos < endPos) {
+			char repeatChar = str[iterPos];
+			if(repeatChar == '0' || repeatChar == baseMaxChar) {
+				// Look for <digits-1> repeated characters
+				size_t repeatCharCount = 1;
+				trimPos = iterPos;
+				while(repeatCharCount < digits && iterPos != endPos && str[iterPos] == repeatChar) {
+					++ repeatCharCount;
+					++ iterPos;
+				}
+				assert(repeatCharCount <= digits);
+
+				if(repeatCharCount >= digits) {
+					// If <digits> repeated chars have been found, trim the string
+					str.resize(trimPos);
+					// If the rounded number is integer, append a zero
+					assert(str.size() != 0); // Wouldn't make sense
+					if(repeatChar == '0') {
+						if(str.back() == '.') str.push_back('0');
+					} else {
+						numStrIncLastDigit(str, baseMaxChar);
+					}
+					return true;
+				}
+			}
+			++ iterPos;
+		}
+
+		return false;
 	}
 
 }
